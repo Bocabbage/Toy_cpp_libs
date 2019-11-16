@@ -1,18 +1,41 @@
 /*
     Project:        Toy_String
     Description:    Build a practice-aimed toy-module in C++
-    Update date:    2019/11/14
+    Update date:    2019/11/16
     Author:         Zhuofan Zhang
 
     Update Log:     2019/11/13 -- replaced the former version with 'allocator version'.
                     2019/11/14 -- Add 'erase'.
+                    2019/11/16 -- Debug; Change the 'end' position.
+
+
+    Model:
+
+        _data    -------
+                |       | <-- begin()
+                |-------| 
+                |  ...  |
+                |       |
+                |-------|
+                |  \0   | <-- _data + _length
+                |-------|
+                | unuse | <-- end()  
+                |-------|
+                |  ...  |
+                |-------|
+                | unuse | <-- _data + _capability
+                 -------
+
+        mem_use: _capability + 1
 */
 #pragma once
 #include<cstring>
 #include<iostream>
 #include<memory>
-
 using std::ostream;
+using std::uninitialized_copy;
+
+
 
 template<typename CharType,
          typename Allocator = std::allocator<CharType> >
@@ -38,11 +61,14 @@ private:
     size_type _length;
 
     iterator _data;
-    Allocator _alloc;
+    allocator_type _alloc;
 
 
     /* Remove */
     void _do_empty();
+
+    /* Expand the mem-use */
+    void _expand_cap();
 
 
 public:
@@ -62,13 +88,14 @@ public:
     bool empty() { return _length == 0; }
     size_type length() { return _length; }
     size_type capability() { return _capability; }
+    void shrink_to_fit();
 
 
     /* Iterators */
     iterator begin() { return _data; }
     const_iterator cbegin() const { return _data; }
-    iterator end() { return _data + _length; }
-    const_iterator cend() const { return _data + _length; }
+    iterator end() { return _data + _length + 1; }
+    const_iterator cend() const { return _data + _length + 1; }
 
 
     /* Element Access */
@@ -84,7 +111,7 @@ public:
     const_reference back() const;
     reference back();
 
-    const_reference c_str() const;
+    const_iterator c_str() const;
 
 
     /* Operations */
@@ -104,13 +131,26 @@ ToyBasicString<CharType,Allocator>::_do_empty()
 {
     if (!this->empty())
     {
-        auto tmp = _data + _capability;
+        auto _end = end();
+        for (auto _tmp = _data; _tmp < _end; ++_tmp)
+            _alloc.destroy(_tmp);
+        _alloc.deallocate(_data, _capability + 1);
         _length = 0;
         _capability = 0;
-        while (tmp != _data)
-            _alloc.destroy(tmp--);
-        _alloc.deallocate(_data, _capability + 1);
     }
+
+}
+
+template<typename CharType,
+         typename Allocator >
+void
+ToyBasicString<CharType, Allocator>::_expand_cap()
+{
+    iterator new_data = _alloc.allocate((_capability << 1) + 1);
+    uninitialized_copy(begin(), end(), new_data);
+    _alloc.deallocate(_data, _capability + 1);
+    _data = new_data;
+    _capability = _capability << 1;
 
 }
 
@@ -138,9 +178,7 @@ ToyBasicString<CharType, Allocator>::ToyBasicString(const_iterator s):
     _alloc(),_capability(strlen(s)<<1),_length(strlen(s))
 {
     _data = _alloc.allocate(_capability + 1);
-    auto p = _data;
-    for (size_t i = 0; i <= _length; ++i)
-        _alloc.construct(p++, s[i]);
+    uninitialized_copy(s, s + strlen(s) + 1, _data);
 }
 
 template<typename CharType,
@@ -149,9 +187,7 @@ ToyBasicString<CharType, Allocator>::ToyBasicString(const ToyBasicString<CharTyp
     _alloc(), _capability(t._capability), _length(t._length)
 {
     _data = _alloc.allocate(_capability + 1);
-    auto p = _data;
-    for (size_t i = 0; i <= _length; ++i)
-        _alloc.construct(p++, t._data[i]);
+    uninitialized_copy(t.cbegin(), t.cend(), _data);
 
 }
 
@@ -160,14 +196,11 @@ template<typename CharType,
 ToyBasicString<CharType, Allocator>&
 ToyBasicString<CharType, Allocator>::operator=(const ToyBasicString<CharType, Allocator>& t)
 {
-    this->_do_empty();
+    _do_empty();
     _length = t._length;
     _capability = t._capability;
     _data = _alloc.allocate(_capability + 1);
-    auto p = _data;
-    for (size_t i = 0; i <= _length; ++i)
-        _alloc.construct(p++, t._data[i]);
-
+    uninitialized_copy(t.cbegin(),t.cend(),_data);
     return this;
 }
 
@@ -175,7 +208,7 @@ template<typename CharType,
          typename Allocator >
 ToyBasicString<CharType, Allocator>::~ToyBasicString()
 {
-    this->_do_empty();
+    _do_empty();
 }
 
 template<typename CharType,
@@ -209,7 +242,7 @@ template<typename CharType,
 typename ToyBasicString<CharType, Allocator>::const_reference
 ToyBasicString<CharType, Allocator>::at(const size_type idx) const
 {
-    if (idx >= _length)
+    if (idx > _length)
         exit(1);
     return _data[idx];
 }
@@ -226,7 +259,7 @@ ToyBasicString<CharType, Allocator>::at(const size_type idx)
 
 template<typename CharType,
          typename Allocator >
-typename ToyBasicString<CharType, Allocator>::const_reference
+typename ToyBasicString<CharType, Allocator>::const_iterator
 ToyBasicString<CharType, Allocator>::c_str() const
 {
     return _data;
@@ -273,14 +306,19 @@ template<typename CharType,
 typename ToyBasicString<CharType, Allocator>::iterator
 ToyBasicString<CharType, Allocator>::erase(iterator pos)
 {
-    if (pos >= end() || pos < begin())
-        exit(1);
-    for (auto p = pos ; p < end(); ++p)
-        *p = *(p + 1);
-    _alloc.destroy(end());
-    --_length;
+    if (pos >= _data && pos < end() - 1)    // Can't remove the '\0'
+    {
+        auto _end = end();
+        for (auto p = pos + 1; p < _end; ++p)
+            *(p - 1) = *p;
+        _alloc.destroy(_end - 1);
+        --_length;
 
-    return pos;
+        return pos;
+    }
+    else
+        return end();
+    
 }
 
 template<typename CharType,
@@ -288,11 +326,14 @@ template<typename CharType,
 typename ToyBasicString<CharType, Allocator>::iterator
 ToyBasicString<CharType, Allocator>::erase(iterator first, iterator last)
 {
-    if (first < last && first >= begin() && last <= end())
+    if (first < last && first >= _data && last < end())
+        // Natually including the condition that '\0' can't be removed 
     {
         auto p = first, q = last;
-        while (q <= end())
+        auto _end = end();
+        while (q < _end)
             *(p++) = *(q++);
+        p--; q--;
         while (q != p)
         {
             _alloc.destroy(q--);
@@ -301,10 +342,8 @@ ToyBasicString<CharType, Allocator>::erase(iterator first, iterator last)
 
         return first;
     }
-    else if (first == last)
-        return end();
     else
-        exit(1);
+        return end();
     
 
 }
@@ -315,4 +354,26 @@ void
 ToyBasicString<CharType, Allocator>::clear()
 {
     erase(begin(), end());
+}
+
+template<typename CharType,
+         typename Allocator >
+void
+ToyBasicString<CharType, Allocator>::shrink_to_fit()
+{
+    if (_length < _capability)
+    {
+        auto _new_data = _alloc.allocate(_length + 1);
+        uninitialized_copy(begin(), end(), _new_data);
+
+        auto _before_cap = _data + _capability + 1;
+        for (auto _tmp = _data; _tmp != _before_cap; ++_tmp)
+            _alloc.destroy(_tmp);
+
+        _alloc.deallocate(_data, _capability + 1);
+
+        _capability = _length;
+        _data = _new_data;
+
+    }
 }
