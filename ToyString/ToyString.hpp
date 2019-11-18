@@ -179,7 +179,7 @@ ToyBasicString<CharType, Allocator>::resize(size_type new_cap)
 template<typename CharType,
          typename Allocator >
 ToyBasicString<CharType,Allocator>::ToyBasicString(): 
-    _alloc(), _capability(_default_capability), _length(0)
+    _alloc(), _capability(_default_capability), _length(0), _data(nullptr)
 { 
     _data = _alloc.allocate(_capability + 1);
     _alloc.construct(_data, '\0');
@@ -188,7 +188,7 @@ ToyBasicString<CharType,Allocator>::ToyBasicString():
 template<typename CharType,
          typename Allocator >
 ToyBasicString<CharType, Allocator>::ToyBasicString(size_type len, const char s):
-    _alloc(), _capability(len<<1), _length(len)
+    _alloc(), _capability(len<<1), _length(len), _data(nullptr)
 {
     _data = _alloc.allocate(_capability + 1);
     _alloc.construct(_data, _length, s);
@@ -198,7 +198,7 @@ ToyBasicString<CharType, Allocator>::ToyBasicString(size_type len, const char s)
 template<typename CharType,
          typename Allocator >
 ToyBasicString<CharType, Allocator>::ToyBasicString(const_iterator s):
-    _alloc(),_capability(strlen(s)<<1),_length(strlen(s))
+    _alloc(),_capability(strlen(s)<<1),_length(strlen(s)), _data(nullptr)
 {
     _data = _alloc.allocate(_capability + 1);
     uninitialized_copy(s, s + strlen(s) + 1, _data);
@@ -207,7 +207,7 @@ ToyBasicString<CharType, Allocator>::ToyBasicString(const_iterator s):
 template<typename CharType,
          typename Allocator >
 ToyBasicString<CharType, Allocator>::ToyBasicString(const ToyBasicString<CharType,Allocator>& t) :
-    _alloc(), _capability(t._capability), _length(t._length)
+    _alloc(), _capability(t._capability), _length(t._length), _data(nullptr)
 {
     _data = _alloc.allocate(_capability + 1);
     uninitialized_copy(t.cbegin(), t.cend()+1, _data);
