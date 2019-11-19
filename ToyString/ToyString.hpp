@@ -35,6 +35,7 @@
 #include<memory>
 using std::ostream;
 using std::uninitialized_copy;
+using std::initializer_list;
 
 
 
@@ -101,6 +102,7 @@ public:
     ToyBasicString(size_type, const char);
     ToyBasicString(const ToyBasicString<CharType,Allocator>&);
     ToyBasicString<CharType,Allocator>& operator=(const ToyBasicString<CharType,Allocator>&);
+    ToyBasicString(initializer_list<value_type>);
 
 
     /* Destructor */
@@ -149,6 +151,14 @@ public:
     void pop_back();
 
     ToyBasicString<CharType, Allocator> substr(size_type,size_type);
+
+    ToyBasicString<CharType, Allocator>& append(const ToyBasicString<CharType, Allocator>&);
+    ToyBasicString<CharType, Allocator>& append(const_iterator);
+
+    ToyBasicString<CharType, Allocator>& operator+=(const ToyBasicString<CharType, Allocator>& str)
+    { return this->append(str); }
+    ToyBasicString<CharType, Allocator>& operator+=(const_iterator s)
+    { return this->append(s); }
 };
 
 template<typename CharType,
@@ -213,7 +223,7 @@ ToyBasicString<CharType, Allocator>::ToyBasicString(size_type len, const char s)
     _alloc(), _capability(len<<1), _length(len), _data(_alloc.allocate(_capability + 1))
 {
     _alloc.construct(_data, _length, s);
-    _alloc.construct(_data + _length, '\0');
+    _alloc.construct(end(), '\0');
 }
 
 template<typename CharType,
@@ -222,6 +232,15 @@ ToyBasicString<CharType, Allocator>::ToyBasicString(const_iterator s):
     _alloc(),_capability(strlen(s)<<1),_length(strlen(s)), _data(_alloc.allocate(_capability + 1))
 {
     uninitialized_copy(s, s + strlen(s) + 1, _data);
+}
+
+template<typename CharType,
+         typename Allocator >
+ToyBasicString<CharType, Allocator>::ToyBasicString(initializer_list<value_type> ilist):
+    _alloc(), _capability(ilist.size() << 1), _length(ilist.size()), _data(_alloc.allocate(_capability + 1))
+{
+    uninitialized_copy(ilist.begin(), ilist.end(), _data);
+    _alloc.construct(end(), '\0');
 }
 
 template<typename CharType,
@@ -440,6 +459,30 @@ ToyBasicString<CharType, Allocator>::substr(size_type pos, size_type n)
         exit(1);
     // Unfinished
 }
+
+template<typename CharType,
+         typename Allocator >
+typename ToyBasicString<CharType, Allocator>&
+ToyBasicString<CharType, Allocator>::append(const ToyBasicString<CharType, Allocator>& str)
+{
+    return this->append(str._data);
+}
+
+template<typename CharType,
+         typename Allocator >
+typename ToyBasicString<CharType, Allocator>&
+ToyBasicString<CharType, Allocator>::append(const_iterator s)
+{
+    size_type _new_length = _length + strlen(s);
+    if (_new_length > _capability)
+        resize(_new_length << 1);
+    uninitialized_copy(s, s+ strlen(s) + 1, end());
+    _length = _new_length;
+    return *this;
+}
+
+
+/* Friends */
 
 template<typename CharType,
          typename Allocator = std::allocator<CharType> >
