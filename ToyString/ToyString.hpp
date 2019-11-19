@@ -1,7 +1,7 @@
 /*
     Project:        Toy_String
     Description:    Build a practice-aimed toy-module in C++
-    Update date:    2019/11/18
+    Update date:    2019/11/19
     Author:         Zhuofan Zhang
 
     Update Log:     2019/11/13 -- replaced the former version with 'allocator version'.
@@ -54,8 +54,31 @@ class ToyBasicString
     /* Constants */
     const size_type _default_capability = 15;
 
+    /* Non-member functions  */
     template<typename X, typename A>
     friend ostream& operator<<(ostream&, const ToyBasicString<X,A>&);
+
+    template<typename X, typename A>
+    friend ToyBasicString<X, A> operator+(const ToyBasicString<X, A>&, const ToyBasicString<X, A>&);
+
+    // Comparison
+    template<typename X, typename A>
+    friend bool operator==(const ToyBasicString<X, A>&, const ToyBasicString<X, A>&);
+
+    template<typename X, typename A>
+    friend bool operator!=(const ToyBasicString<X, A>& a, const ToyBasicString<X, A>& b) { return !(a == b); }
+
+    template<typename X, typename A>
+    friend bool operator<(const ToyBasicString<X, A>&, const ToyBasicString<X, A>&);
+
+    template<typename X, typename A>
+    friend bool operator>(const ToyBasicString<X, A>&, const ToyBasicString<X, A>&);
+
+    template<typename X, typename A>
+    friend bool operator<=(const ToyBasicString<X, A>& a, const ToyBasicString<X, A>& b) { return !(a > b); }
+
+    template<typename X, typename A>
+    friend bool operator>=(const ToyBasicString<X, A>& a, const ToyBasicString<X, A>& b) { return !(a < b); }
 
 
 private:
@@ -134,7 +157,7 @@ void
 ToyBasicString<CharType,Allocator>::_do_destroy()
 {
     // It's different from 'clear()':
-    //  It deallocate the _data and set it to nullptr.
+    // It deallocates the _data and sets it to nullptr.
     if (_data!=nullptr)
     {
         auto _end_cap = end() + 1;
@@ -230,13 +253,7 @@ ToyBasicString<CharType, Allocator>::~ToyBasicString()
     _do_destroy();
 }
 
-template<typename CharType,
-         typename Allocator = std::allocator<CharType> >
-ostream&
-operator<<(ostream& os, const ToyBasicString<CharType, Allocator> &s)
-{
-    return os << s._data;
-}
+
 
 template<typename CharType,
          typename Allocator >
@@ -422,4 +439,47 @@ ToyBasicString<CharType, Allocator>::substr(size_type pos, size_type n)
     if (pos + n > _length)
         exit(1);
     // Unfinished
+}
+
+template<typename CharType,
+         typename Allocator = std::allocator<CharType> >
+ostream&
+operator<<(ostream& os, const ToyBasicString<CharType, Allocator>& s)
+{
+    return os << s._data;
+}
+
+template<typename CharType,
+         typename Allocator = std::allocator<CharType> >
+ToyBasicString<CharType, Allocator>
+operator+(const ToyBasicString<CharType, Allocator>& a, ToyBasicString<CharType, Allocator>& b)
+{
+    char* _res;
+    strcpy(_res, a._data);
+    strcat(_res, b._data);
+    return ToyBasicString<CharType, Allocator>(_res);
+}
+
+template<typename CharType,
+         typename Allocator = std::allocator<CharType> >
+bool
+operator==(const ToyBasicString<CharType, Allocator>& a, ToyBasicString<CharType, Allocator>& b)
+{
+    return strcmp(a._data, b._data) == 0;
+}
+
+template<typename CharType,
+         typename Allocator = std::allocator<CharType> >
+bool
+operator<(const ToyBasicString<CharType, Allocator>& a, ToyBasicString<CharType, Allocator>& b)
+{
+    return strcmp(a._data, b._data) < 0;
+}
+
+template<typename CharType,
+         typename Allocator = std::allocator<CharType> >
+bool
+operator>(const ToyBasicString<CharType, Allocator>& a, ToyBasicString<CharType, Allocator>& b)
+{
+    return strcmp(a._data, b._data) > 0;
 }
