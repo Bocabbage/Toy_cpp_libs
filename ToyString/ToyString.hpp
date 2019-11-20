@@ -37,8 +37,7 @@ using std::ostream;
 using std::uninitialized_copy;
 using std::initializer_list;
 
-template<typename T>
-void Self_swap(T&, T&);
+
 
 template<typename CharType,
          typename Allocator = std::allocator<CharType> >
@@ -168,6 +167,8 @@ public:
     { return this->append(str); }
     ToyBasicString<CharType, Allocator>& operator+=(const_iterator s)
     { return this->append(s); }
+
+
 };
 
 template<typename CharType,
@@ -503,10 +504,11 @@ template<typename CharType,
 void
 ToyBasicString<CharType, Allocator>::swap(ToyBasicString<CharType, Allocator>& str)
 {
-    Self_swap<Allocator>(_alloc, str._alloc);
-    Self_swap<iterator>(_data, str._data);
-    Self_swap<size_type>(_length, str._length);
-    Self_swap<size_type>(_capability, str._capability);
+    // pimpl: Pointer to Implementation
+    std::swap(_alloc, str._alloc);
+    std::swap(_data, str._data);    // !
+    std::swap(_length, str._length);
+    std::swap(_capability, str._capability);
 }
 
 template<typename CharType,
@@ -591,10 +593,10 @@ operator>(const ToyBasicString<CharType, Allocator>& a, ToyBasicString<CharType,
     return strcmp(a._data, b._data) > 0;
 }
 
+
+// Effective cpp: item 25
 template<typename T>
-void Self_swap(T& a, T& b)
+void swap(ToyBasicString<T>& a, ToyBasicString<T>& b)
 {
-    T _tmp = a;
-    a = b;
-    b = _tmp;
+    a.swap(b);
 }
