@@ -4,10 +4,9 @@
     Update date:    2019/11/20
     Author:         Zhuofan Zhang
 
-    Update Log:     2019/11/13 -- replaced the former version with 'allocator version'.
-                    2019/11/14 -- Add 'erase'.
-                    2019/11/16 -- Debug; Change the 'end' position.
-                    2019/11/18 -- Change the model: '\0' is now placed in end();
+    Important Log:      2019/11/13 -- replaced the former version with 'allocator version'.
+                        2019/11/18 -- Change the model: '\0' is now placed in end();
+                        2019/11/20 -- Add 'swap'; Change 'operator=' into 'self-assignment-safe'
 
 
     Model:
@@ -267,12 +266,20 @@ template<typename CharType,
 ToyBasicString<CharType, Allocator>&
 ToyBasicString<CharType, Allocator>::operator=(const ToyBasicString<CharType, Allocator>& t)
 {
+    /*
     _do_destroy();
     _length = t._length;
     _capability = t._capability;
     _data = _alloc.allocate(_capability + 1);
     uninitialized_copy(t.cbegin(),t.cend()+1,_data);
-    return this;
+    return *this;
+    */
+
+    /* New Version: self-assignment-safe */
+    ToyBasicString<CharType, Allocator> _tmp(t);
+    swap(_tmp);
+    return *this;
+
 }
 
 template<typename CharType,
