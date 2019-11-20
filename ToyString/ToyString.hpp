@@ -1,7 +1,7 @@
 /*
     Project:        Toy_String
     Description:    Build a practice-aimed toy-module in C++
-    Update date:    2019/11/19
+    Update date:    2019/11/20
     Author:         Zhuofan Zhang
 
     Update Log:     2019/11/13 -- replaced the former version with 'allocator version'.
@@ -37,7 +37,8 @@ using std::ostream;
 using std::uninitialized_copy;
 using std::initializer_list;
 
-
+template<typename T>
+void Self_swap(T&, T&);
 
 template<typename CharType,
          typename Allocator = std::allocator<CharType> >
@@ -154,6 +155,14 @@ public:
 
     ToyBasicString<CharType, Allocator>& append(const ToyBasicString<CharType, Allocator>&);
     ToyBasicString<CharType, Allocator>& append(const_iterator);
+
+    int compare(const ToyBasicString<CharType, Allocator>&);
+
+    size_type copy(CharType*, size_type, size_type) const;
+
+    void swap(ToyBasicString<CharType, Allocator>&);
+
+    ToyBasicString<CharType, Allocator>& insert(size_type, const_iterator);
 
     ToyBasicString<CharType, Allocator>& operator+=(const ToyBasicString<CharType, Allocator>& str)
     { return this->append(str); }
@@ -481,6 +490,62 @@ ToyBasicString<CharType, Allocator>::append(const_iterator s)
     return *this;
 }
 
+template<typename CharType,
+         typename Allocator >
+int
+ToyBasicString<CharType, Allocator>::compare(const ToyBasicString<CharType, Allocator>& str)
+{
+    return strcmp(_data, str._data);
+}
+
+template<typename CharType,
+         typename Allocator >
+void
+ToyBasicString<CharType, Allocator>::swap(ToyBasicString<CharType, Allocator>& str)
+{
+    Self_swap<Allocator>(_alloc, str._alloc);
+    Self_swap<iterator>(_data, str._data);
+    Self_swap<size_type>(_length, str._length);
+    Self_swap<size_type>(_capability, str._capability);
+}
+
+template<typename CharType,
+         typename Allocator >
+typename ToyBasicString<CharType, Allocator>&
+ToyBasicString<CharType, Allocator>::insert(size_type idx, const_iterator s)
+{
+    auto s_len = strlen(s);
+    
+    if (_length + s_len > _capability)
+        resize((_length + s_len) << 1);
+
+    uninitialized_copy(_data + idx, end()+1, _data + idx + s_len);
+    uninitialized_copy(s, s + s_len, _data + idx);
+    
+
+    _length += s_len;
+    return *this;
+}
+
+template<typename CharType,
+         typename Allocator >
+typename ToyBasicString<CharType, Allocator>::size_type
+ToyBasicString<CharType, Allocator>::copy(CharType* dest, size_type count, size_type pos) const
+{
+    // By default, we recognize 'dest' points to a constructed mem.
+    if (pos + count > _length - 1)
+    {
+        // uninitialized_copy(_data + pos, _data + _length + 1, dest);
+        strcpy(dest, _data + pos);
+        return _length - pos;
+    }
+    else
+    {
+        uninitialized_copy(_data + pos, _data + pos + count, dest);
+        dest[count] = '\0';
+        return count;
+    }
+}
 
 /* Friends */
 
@@ -497,10 +562,9 @@ template<typename CharType,
 ToyBasicString<CharType, Allocator>
 operator+(const ToyBasicString<CharType, Allocator>& a, ToyBasicString<CharType, Allocator>& b)
 {
-    char* _res;
-    strcpy(_res, a._data);
-    strcat(_res, b._data);
-    return ToyBasicString<CharType, Allocator>(_res);
+    ToyBasicString<CharType, Allocator> _res(a._data);
+    _res.append(b._data);
+    return _res;
 }
 
 template<typename CharType,
@@ -525,4 +589,12 @@ bool
 operator>(const ToyBasicString<CharType, Allocator>& a, ToyBasicString<CharType, Allocator>& b)
 {
     return strcmp(a._data, b._data) > 0;
+}
+
+template<typename T>
+void Self_swap(T& a, T& b)
+{
+    T _tmp = a;
+    a = b;
+    b = _tmp;
 }
