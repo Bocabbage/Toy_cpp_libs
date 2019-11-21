@@ -1,12 +1,13 @@
 /*
     Project:        Toy_String
     Description:    Build a practice-aimed toy-module in C++
-    Update date:    2019/11/20
+    Update date:    2019/11/21
     Author:         Zhuofan Zhang
 
-    Important Log:      2019/11/13 -- replaced the former version with 'allocator version'.
-                        2019/11/18 -- Change the model: '\0' is now placed in end();
-                        2019/11/20 -- Add 'swap'; Change 'operator=' into 'self-assignment-safe'
+    Update Log:     2019/11/13 -- replaced the former version with 'allocator version'.
+                    2019/11/14 -- Add 'erase'.
+                    2019/11/16 -- Debug; Change the 'end' position.
+                    2019/11/18 -- Change the model: '\0' is now placed in end();
 
 
     Model:
@@ -52,7 +53,8 @@ class ToyBasicString
     typedef const CharType& const_reference;
 
     /* Constants */
-    const size_type _default_capability = 15;
+    static const size_type _default_capability = 15;
+    static const size_type _npos = -1;
 
     /* Non-member functions  */
     template<typename X, typename A>
@@ -161,6 +163,14 @@ public:
     void swap(ToyBasicString<CharType, Allocator>&);
 
     ToyBasicString<CharType, Allocator>& insert(size_type, const_iterator);
+
+    size_type find(size_type, const_iterator) const;
+    size_type find(size_type pos, const ToyBasicString<CharType, Allocator>& str) const
+    { return find(pos, str._data);}
+
+    size_type find_first_of(size_type, const_iterator) const;
+    size_type find_first_of(size_type pos, const ToyBasicString<CharType, Allocator>& str) const
+    { return find_first_of(pos, str._data); }
 
     ToyBasicString<CharType, Allocator>& operator+=(const ToyBasicString<CharType, Allocator>& str)
     { return this->append(str); }
@@ -555,6 +565,31 @@ ToyBasicString<CharType, Allocator>::copy(CharType* dest, size_type count, size_
         return count;
     }
 }
+
+template<typename CharType,
+         typename Allocator >
+typename ToyBasicString<CharType, Allocator>::size_type
+ToyBasicString<CharType, Allocator>::find(size_type pos, const_iterator s) const
+{
+    auto _res = strstr(_data + pos, s);
+    if (_res)
+        return _res - _data;
+    else
+        return _npos;
+}
+
+template<typename CharType,
+         typename Allocator >
+typename ToyBasicString<CharType, Allocator>::size_type
+ToyBasicString<CharType, Allocator>::find_first_of(size_type pos, const_iterator s) const
+{
+    auto _res = strpbrk(_data + pos, s);
+    if (_res)
+        return _res - _data;
+    else
+        return _npos;
+}
+
 
 /* Friends */
 
