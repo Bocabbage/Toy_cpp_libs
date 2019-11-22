@@ -1,13 +1,14 @@
 /*
     Project:        Toy_String
     Description:    Build a practice-aimed toy-module in C++
-    Update date:    2019/11/21
+    Update date:    2019/11/22
     Author:         Zhuofan Zhang
 
     Update Log:     2019/11/13 -- replaced the former version with 'allocator version'.
                     2019/11/14 -- Add 'erase'.
                     2019/11/16 -- Debug; Change the 'end' position.
                     2019/11/18 -- Change the model: '\0' is now placed in end();
+                    2019/11/22 -- Add Exceptions process.
 
 
     Model:
@@ -33,10 +34,14 @@
 #include<cstring>
 #include<iostream>
 #include<memory>
+#include<stdexcept>
 using std::ostream;
 using std::uninitialized_copy;
 using std::initializer_list;
+using std::range_error;
 
+/* Exception Codes */
+const int RANGE_ERROR = 2;
 
 
 template<typename CharType,
@@ -100,6 +105,7 @@ public:
     /* Constructors */
     ToyBasicString();
     ToyBasicString(const_iterator);
+    ToyBasicString(const_iterator, const_iterator);
     ToyBasicString(size_type, const char);
     ToyBasicString(const ToyBasicString<CharType,Allocator>&);
     ToyBasicString<CharType,Allocator>& operator=(const ToyBasicString<CharType,Allocator>&);
@@ -107,7 +113,7 @@ public:
 
 
     /* Destructor */
-    ~ToyBasicString();
+    ~ToyBasicString() noexcept;
 
 
     /* Capability */
@@ -248,15 +254,24 @@ ToyBasicString<CharType, Allocator>::ToyBasicString(size_type len, const char s)
 template<typename CharType,
          typename Allocator >
 ToyBasicString<CharType, Allocator>::ToyBasicString(const_iterator s):
-    _alloc(),_capability(strlen(s)<<1),_length(strlen(s)), _data(_alloc.allocate(_capability + 1))
+    _alloc(), _length(strlen(s)), _capability(strlen(s) << 1), _data(_alloc.allocate(_capability + 1))
 {
     uninitialized_copy(s, s + strlen(s) + 1, _data);
 }
 
 template<typename CharType,
          typename Allocator >
+ToyBasicString<CharType, Allocator>::ToyBasicString(const_iterator first, const_iterator last):
+    _alloc(), _length(last - first) ,_capability((last - first) << 1), _data(_alloc.allocate(_capability + 1))
+{
+    uninitialized_copy(first, last, _data);
+    _alloc.construct(end(), '\0');
+}
+
+template<typename CharType,
+         typename Allocator >
 ToyBasicString<CharType, Allocator>::ToyBasicString(initializer_list<value_type> ilist):
-    _alloc(), _capability(ilist.size() << 1), _length(ilist.size()), _data(_alloc.allocate(_capability + 1))
+    _alloc(), _length(ilist.size()), _capability(ilist.size() << 1), _data(_alloc.allocate(_capability + 1))
 {
     uninitialized_copy(ilist.begin(), ilist.end(), _data);
     _alloc.construct(end(), '\0');
@@ -294,7 +309,7 @@ ToyBasicString<CharType, Allocator>::operator=(const ToyBasicString<CharType, Al
 
 template<typename CharType,
          typename Allocator >
-ToyBasicString<CharType, Allocator>::~ToyBasicString()
+ToyBasicString<CharType, Allocator>::~ToyBasicString() noexcept
 {
     _do_destroy();
 }
@@ -324,9 +339,18 @@ template<typename CharType,
 typename ToyBasicString<CharType, Allocator>::const_reference
 ToyBasicString<CharType, Allocator>::at(const size_type idx) const
 {
-    if (idx >= _length)
-        exit(1);
-    return _data[idx];
+    try
+    {
+        if (idx >= _length)
+            throw range_error("RANGE_ERROR: the index must in range [0,length()).");
+        return _data[idx];
+    }
+    catch (range_error err)
+    {
+        std::cout << std::endl << err.what() << std::endl;
+        exit(RANGE_ERROR);
+    }
+    
 }
 
 template<typename CharType,
@@ -482,9 +506,19 @@ template<typename CharType,
 typename ToyBasicString<CharType, Allocator>
 ToyBasicString<CharType, Allocator>::substr(size_type pos, size_type n)
 {
-    if (pos + n > _length)
-        exit(1);
-    // Unfinished
+    try
+    {
+        if (pos + n > _length)
+            throw range_error("RANGE_ERROR: pos + n must be small than length() or equal it.");
+        
+        return ToyBasicString<CharType, Allocator>(_data + pos, _data + pos + n);
+
+    }   
+    catch(range_error err)
+    {
+        std::cout << std::endl << err.what() << std::endl;
+        exit(RANGE_ERROR);
+    }
 }
 
 template<typename CharType,
