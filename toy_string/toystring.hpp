@@ -1,7 +1,7 @@
 /*
     Project:        Toy_String
     Description:    Build a practice-aimed toy-module in C++
-    Update date:    2019/11/22
+    Update date:    2019/11/24
     Author:         Zhuofan Zhang
 
     Update Log:     2019/11/13 -- replaced the former version with 'allocator version'.
@@ -9,6 +9,7 @@
                     2019/11/16 -- Debug; Change the 'end' position.
                     2019/11/18 -- Change the model: '\0' is now placed in end();
                     2019/11/22 -- Add Exceptions process.
+                    2019/11/24 -- Add moving constructor/ moving =
 
 
     Model:
@@ -110,7 +111,9 @@ namespace toy_std
         tbasic_string(const_iterator, const_iterator);
         tbasic_string(size_type, const char);
         tbasic_string(const tbasic_string<CharType, Allocator>&);
+        tbasic_string(const tbasic_string<CharType, Allocator>&&) noexcept;
         tbasic_string<CharType, Allocator>& operator=(const tbasic_string<CharType, Allocator>&);
+        tbasic_string<CharType, Allocator>& operator=(const tbasic_string<CharType, Allocator>&&) noexcept;
         tbasic_string(initializer_list<value_type>);
 
 
@@ -196,8 +199,7 @@ namespace toy_std
 
     };
 
-    template<typename CharType,
-        typename Allocator >
+    template<typename CharType, typename Allocator >
         void
         tbasic_string<CharType, Allocator>::_do_destroy()
     {
@@ -219,10 +221,9 @@ namespace toy_std
 
     }
 
-    template<typename CharType,
-        typename Allocator >
-        void
-        tbasic_string<CharType, Allocator>::resize(size_type new_cap)
+    template<typename CharType, typename Allocator >
+    void
+    tbasic_string<CharType, Allocator>::resize(size_type new_cap)
     {
         if (new_cap == _capability)
             return;
@@ -244,62 +245,63 @@ namespace toy_std
 
     }
 
-    template<typename CharType,
-        typename Allocator >
-        tbasic_string<CharType, Allocator>::tbasic_string() :
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>::tbasic_string() :
         _alloc(), _capability(_default_capability), _length(0), _data(_alloc.allocate(_capability + 1))
     {
         _alloc.construct(_data, '\0');
     }
 
-    template<typename CharType,
-        typename Allocator >
-        tbasic_string<CharType, Allocator>::tbasic_string(size_type len, const char s) :
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>::tbasic_string(size_type len, const char s) :
         _alloc(), _capability(len << 1), _length(len), _data(_alloc.allocate(_capability + 1))
     {
         _alloc.construct(_data, _length, s);
         _alloc.construct(end(), '\0');
     }
 
-    template<typename CharType,
-        typename Allocator >
-        tbasic_string<CharType, Allocator>::tbasic_string(const_iterator s) :
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>::tbasic_string(const_iterator s) :
         _alloc(), _length(strlen(s)), _capability(strlen(s) << 1), _data(_alloc.allocate(_capability + 1))
     {
         uninitialized_copy(s, s + strlen(s) + 1, _data);
     }
 
-    template<typename CharType,
-        typename Allocator >
-        tbasic_string<CharType, Allocator>::tbasic_string(const_iterator first, const_iterator last) :
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>::tbasic_string(const_iterator first, const_iterator last) :
         _alloc(), _length(last - first), _capability((last - first) << 1), _data(_alloc.allocate(_capability + 1))
     {
         uninitialized_copy(first, last, _data);
         _alloc.construct(end(), '\0');
     }
 
-    template<typename CharType,
-        typename Allocator >
-        tbasic_string<CharType, Allocator>::tbasic_string(initializer_list<value_type> ilist) :
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>::tbasic_string(initializer_list<value_type> ilist) :
         _alloc(), _length(ilist.size()), _capability(ilist.size() << 1), _data(_alloc.allocate(_capability + 1))
     {
         uninitialized_copy(ilist.begin(), ilist.end(), _data);
         _alloc.construct(end(), '\0');
     }
 
-    template<typename CharType,
-        typename Allocator >
-        tbasic_string<CharType, Allocator>::tbasic_string(const tbasic_string<CharType, Allocator>& t) :
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>::tbasic_string(const tbasic_string<CharType, Allocator>& t) :
         _alloc(), _capability(t._capability), _length(t._length), _data(_alloc.allocate(_capability + 1))
     {
         uninitialized_copy(t.cbegin(), t.cend() + 1, _data);
 
     }
 
-    template<typename CharType,
-        typename Allocator >
-        tbasic_string<CharType, Allocator>&
-        tbasic_string<CharType, Allocator>::operator=(const tbasic_string<CharType, Allocator>& t)
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>::tbasic_string(const tbasic_string<CharType, Allocator>&& rt) noexcept :
+        _alloc(rt._alloc), _capability(rt._capability), _length(rt._length), _data(rt._data)
+    {
+        rt._data = nullptr;
+        rt._length = rt._capability = 0;
+    }
+
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>&
+    tbasic_string<CharType, Allocator>::operator=(const tbasic_string<CharType, Allocator>& t)
     {
         /*
         _do_destroy();
@@ -317,37 +319,42 @@ namespace toy_std
 
     }
 
-    template<typename CharType,
-        typename Allocator >
-        tbasic_string<CharType, Allocator>::~tbasic_string() noexcept
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>&
+    tbasic_string<CharType, Allocator>::operator=(const tbasic_string<CharType, Allocator>&& rt) noexcept
+    {
+        tbasic_string<CharType, Allocator> _tmp(rt);
+        swap(_tmp);
+        return *this;
+    }
+
+    template<typename CharType, typename Allocator >
+    tbasic_string<CharType, Allocator>::~tbasic_string() noexcept
     {
         _do_destroy();
     }
 
 
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::const_reference
-        tbasic_string<CharType, Allocator>::operator[](const size_type idx) const
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::const_reference
+    tbasic_string<CharType, Allocator>::operator[](const size_type idx) const
     {
         return _data[idx];
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::reference
-        tbasic_string<CharType, Allocator>::operator[](const size_type idx)
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::reference
+    tbasic_string<CharType, Allocator>::operator[](const size_type idx)
     {
         return const_cast<reference>(
             static_cast<const tbasic_string<CharType, Allocator>&>(*this)[idx]
             );
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::const_reference
-        tbasic_string<CharType, Allocator>::at(const size_type idx) const
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::const_reference
+    tbasic_string<CharType, Allocator>::at(const size_type idx) const
     {
         try
         {
@@ -363,64 +370,57 @@ namespace toy_std
 
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::reference
-        tbasic_string<CharType, Allocator>::at(const size_type idx)
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::reference
+    tbasic_string<CharType, Allocator>::at(const size_type idx)
     {
         return const_cast<reference>(
             static_cast<const tbasic_string<CharType, Allocator>&>(*this).at(idx)
             );
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::const_iterator
-        tbasic_string<CharType, Allocator>::c_str() const
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::const_iterator
+    tbasic_string<CharType, Allocator>::c_str() const
     {
         return _data;
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::const_reference
-        tbasic_string<CharType, Allocator>::front() const
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::const_reference
+    tbasic_string<CharType, Allocator>::front() const
     {
         return _data[0];
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::reference
-        tbasic_string<CharType, Allocator>::front()
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::reference
+    tbasic_string<CharType, Allocator>::front()
     {
         return const_cast<reference>(
             static_cast<const tbasic_string<CharType, Allocator>&>(*this).front()
             );
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::const_reference
-        tbasic_string<CharType, Allocator>::back() const
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::const_reference
+    tbasic_string<CharType, Allocator>::back() const
     {
         return _data[_length - 1];
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::reference
-        tbasic_string<CharType, Allocator>::back()
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::reference
+    tbasic_string<CharType, Allocator>::back()
     {
         return const_cast<reference>(
             static_cast<const tbasic_string<CharType, Allocator>&>(*this).back()
             );
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::iterator
-        tbasic_string<CharType, Allocator>::erase(iterator pos)
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::iterator
+    tbasic_string<CharType, Allocator>::erase(iterator pos)
     {
         if (pos >= _data && pos < end())
         {
@@ -437,10 +437,9 @@ namespace toy_std
 
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::iterator
-        tbasic_string<CharType, Allocator>::erase(iterator first, iterator last)
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::iterator
+    tbasic_string<CharType, Allocator>::erase(iterator first, iterator last)
     {
         if (first < last && first >= _data && last <= end())
             // Natually including the condition that '\0' can't be removed 
@@ -464,18 +463,16 @@ namespace toy_std
 
     }
 
-    template<typename CharType,
-        typename Allocator >
-        void
-        tbasic_string<CharType, Allocator>::clear()
+    template<typename CharType, typename Allocator >
+    void
+    tbasic_string<CharType, Allocator>::clear()
     {
         erase(begin(), end());
     }
 
-    template<typename CharType,
-        typename Allocator >
-        void
-        tbasic_string<CharType, Allocator>::shrink_to_fit()
+    template<typename CharType, typename Allocator >
+    void
+    tbasic_string<CharType, Allocator>::shrink_to_fit()
     {
         if (_length < _capability)
         {
@@ -492,10 +489,9 @@ namespace toy_std
         }
     }
 
-    template<typename CharType,
-        typename Allocator >
-        void
-        tbasic_string<CharType, Allocator>::push_back(value_type c)
+    template<typename CharType, typename Allocator >
+    void
+    tbasic_string<CharType, Allocator>::push_back(value_type c)
     {
         if (_length == _capability)
             resize(_capability << 1);
@@ -503,18 +499,16 @@ namespace toy_std
         _data[_length] = '\0';
     }
 
-    template<typename CharType,
-        typename Allocator >
-        void
-        tbasic_string<CharType, Allocator>::pop_back()
+    template<typename CharType, typename Allocator >
+    void
+    tbasic_string<CharType, Allocator>::pop_back()
     {
         erase(end() - 1);
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>
-        tbasic_string<CharType, Allocator>::substr(size_type pos, size_type n)
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>
+    tbasic_string<CharType, Allocator>::substr(size_type pos, size_type n)
     {
         try
         {
@@ -531,18 +525,16 @@ namespace toy_std
         }
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>&
-        tbasic_string<CharType, Allocator>::append(const tbasic_string<CharType, Allocator>& str)
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>&
+    tbasic_string<CharType, Allocator>::append(const tbasic_string<CharType, Allocator>& str)
     {
         return this->append(str._data);
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>&
-        tbasic_string<CharType, Allocator>::append(const_iterator s)
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>&
+    tbasic_string<CharType, Allocator>::append(const_iterator s)
     {
         size_type _new_length = _length + strlen(s);
         if (_new_length > _capability)
@@ -552,18 +544,16 @@ namespace toy_std
         return *this;
     }
 
-    template<typename CharType,
-        typename Allocator >
-        int
-        tbasic_string<CharType, Allocator>::compare(const tbasic_string<CharType, Allocator>& str)
+    template<typename CharType, typename Allocator >
+    int
+    tbasic_string<CharType, Allocator>::compare(const tbasic_string<CharType, Allocator>& str)
     {
         return strcmp(_data, str._data);
     }
 
-    template<typename CharType,
-        typename Allocator >
-        void
-        tbasic_string<CharType, Allocator>::swap(tbasic_string<CharType, Allocator>& str)
+    template<typename CharType, typename Allocator >
+    void
+    tbasic_string<CharType, Allocator>::swap(tbasic_string<CharType, Allocator>& str)
     {
         // pimpl: Pointer to Implementation
         std::swap(_alloc, str._alloc);
@@ -572,10 +562,9 @@ namespace toy_std
         std::swap(_capability, str._capability);
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>&
-        tbasic_string<CharType, Allocator>::insert(size_type idx, const_iterator s)
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>&
+    tbasic_string<CharType, Allocator>::insert(size_type idx, const_iterator s)
     {
         auto s_len = strlen(s);
 
@@ -590,10 +579,9 @@ namespace toy_std
         return *this;
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::size_type
-        tbasic_string<CharType, Allocator>::copy(CharType* dest, size_type count, size_type pos) const
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::size_type
+    tbasic_string<CharType, Allocator>::copy(CharType* dest, size_type count, size_type pos) const
     {
         // By default, we recognize 'dest' points to a constructed mem.
         if (pos + count > _length - 1)
@@ -610,10 +598,9 @@ namespace toy_std
         }
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::size_type
-        tbasic_string<CharType, Allocator>::find(size_type pos, const_iterator s) const
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::size_type
+    tbasic_string<CharType, Allocator>::find(size_type pos, const_iterator s) const
     {
         auto _res = strstr(_data + pos, s);
         if (_res)
@@ -622,10 +609,9 @@ namespace toy_std
             return _npos;
     }
 
-    template<typename CharType,
-        typename Allocator >
-        typename tbasic_string<CharType, Allocator>::size_type
-        tbasic_string<CharType, Allocator>::find_first_of(size_type pos, const_iterator s) const
+    template<typename CharType, typename Allocator >
+    typename tbasic_string<CharType, Allocator>::size_type
+    tbasic_string<CharType, Allocator>::find_first_of(size_type pos, const_iterator s) const
     {
         auto _res = strpbrk(_data + pos, s);
         if (_res)
@@ -637,44 +623,39 @@ namespace toy_std
 
     /* Friends */
 
-    template<typename CharType,
-        typename Allocator = std::allocator<CharType> >
-        ostream&
-        operator<<(ostream& os, const tbasic_string<CharType, Allocator>& s)
+    template<typename CharType, typename Allocator = std::allocator<CharType> >
+    ostream&
+    operator<<(ostream& os, const tbasic_string<CharType, Allocator>& s)
     {
         return os << s._data;
     }
 
-    template<typename CharType,
-        typename Allocator = std::allocator<CharType> >
-        tbasic_string<CharType, Allocator>
-        operator+(const tbasic_string<CharType, Allocator>& a, tbasic_string<CharType, Allocator>& b)
+    template<typename CharType, typename Allocator = std::allocator<CharType> >
+    tbasic_string<CharType, Allocator>
+    operator+(const tbasic_string<CharType, Allocator>& a, tbasic_string<CharType, Allocator>& b)
     {
         tbasic_string<CharType, Allocator> _res(a._data);
         _res.append(b._data);
         return _res;
     }
 
-    template<typename CharType,
-        typename Allocator = std::allocator<CharType> >
-        bool
-        operator==(const tbasic_string<CharType, Allocator>& a, tbasic_string<CharType, Allocator>& b)
+    template<typename CharType, typename Allocator = std::allocator<CharType> >
+    bool
+    operator==(const tbasic_string<CharType, Allocator>& a, tbasic_string<CharType, Allocator>& b)
     {
         return strcmp(a._data, b._data) == 0;
     }
 
-    template<typename CharType,
-        typename Allocator = std::allocator<CharType> >
-        bool
-        operator<(const tbasic_string<CharType, Allocator>& a, tbasic_string<CharType, Allocator>& b)
+    template<typename CharType, typename Allocator = std::allocator<CharType> >
+    bool
+    operator<(const tbasic_string<CharType, Allocator>& a, tbasic_string<CharType, Allocator>& b)
     {
         return strcmp(a._data, b._data) < 0;
     }
 
-    template<typename CharType,
-        typename Allocator = std::allocator<CharType> >
-        bool
-        operator>(const tbasic_string<CharType, Allocator>& a, tbasic_string<CharType, Allocator>& b)
+    template<typename CharType, typename Allocator = std::allocator<CharType> >
+    bool
+    operator>(const tbasic_string<CharType, Allocator>& a, tbasic_string<CharType, Allocator>& b)
     {
         return strcmp(a._data, b._data) > 0;
     }
