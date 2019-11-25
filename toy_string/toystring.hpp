@@ -1,7 +1,7 @@
 /*
     Project:        Toy_String
     Description:    Build a practice-aimed toy-module in C++
-    Update date:    2019/11/24
+    Update date:    2019/11/25
     Author:         Zhuofan Zhang
 
     Update Log:     2019/11/13 -- replaced the former version with 'allocator version'.
@@ -32,7 +32,7 @@
         mem_use: _capability + 1
 */
 #pragma once
-#include"toy_std.hpp"
+#include"../toy/toy_std.hpp"
 #include<cstring>
 using std::ostream;
 using std::uninitialized_copy;
@@ -507,7 +507,7 @@ namespace toy_std
     }
 
     template<typename CharType, typename Allocator >
-    typename tbasic_string<CharType, Allocator>
+    tbasic_string<CharType, Allocator>
     tbasic_string<CharType, Allocator>::substr(size_type pos, size_type n)
     {
         try
@@ -526,14 +526,14 @@ namespace toy_std
     }
 
     template<typename CharType, typename Allocator >
-    typename tbasic_string<CharType, Allocator>&
+    tbasic_string<CharType, Allocator>&
     tbasic_string<CharType, Allocator>::append(const tbasic_string<CharType, Allocator>& str)
     {
         return this->append(str._data);
     }
 
     template<typename CharType, typename Allocator >
-    typename tbasic_string<CharType, Allocator>&
+    tbasic_string<CharType, Allocator>&
     tbasic_string<CharType, Allocator>::append(const_iterator s)
     {
         size_type _new_length = _length + strlen(s);
@@ -563,7 +563,7 @@ namespace toy_std
     }
 
     template<typename CharType, typename Allocator >
-    typename tbasic_string<CharType, Allocator>&
+    tbasic_string<CharType, Allocator>&
     tbasic_string<CharType, Allocator>::insert(size_type idx, const_iterator s)
     {
         auto s_len = strlen(s);
