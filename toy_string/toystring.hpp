@@ -52,13 +52,13 @@ namespace toy_std
         class tbasic_string
     {
         /* Member Types */
-        typedef Allocator allocator_type;
-        typedef std::size_t size_type;
-        typedef CharType value_type;
-        typedef CharType* iterator;
-        typedef CharType& reference;
-        typedef const CharType* const_iterator;
-        typedef const CharType& const_reference;
+        using allocator_type = Allocator;
+        using size_type = std::size_t;
+        using value_type = CharType;
+        using iterator = CharType*;
+        using reference = CharType&;
+        using const_iterator = const CharType*;
+        using const_reference = const CharType&;
 
         /* Constants */
         static const size_type _default_capability = 15;
