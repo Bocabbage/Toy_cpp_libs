@@ -32,7 +32,7 @@
         mem_use: _capability + 1
 */
 #pragma once
-#include"../toy/toy_std.hpp"
+#include"toy_std.hpp"
 #include<cstring>
 using std::ostream;
 using std::uninitialized_copy;
