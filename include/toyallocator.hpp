@@ -24,7 +24,7 @@ namespace toy_std
         friend bool operator==(const tallocator<T1>&, const tallocator<T2>&) noexcept;
 
         /* Constants */
-        static const size_type max_size = std::numeric_limits<size_type>::max();
+        static const size_type _max_size = std::numeric_limits<size_type>::max();
         
     public:
         /* Constructors */
@@ -44,7 +44,7 @@ namespace toy_std
         void construct(pointer, const_reference);
         void construct(pointer, size_type, const_pointer);
         void destroy(pointer);
-        size_type max_size() { return max_size; }
+        size_type max_size() { return _max_size; }
 
     };
 }
