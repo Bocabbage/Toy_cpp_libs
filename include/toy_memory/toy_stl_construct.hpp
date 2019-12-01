@@ -10,12 +10,7 @@
 
 namespace toy_std
 {
-    template <typename T1, typename T2>
-    void
-    construct(T1 *p, const T2& value)
-    {
-        new(p) T1(value);
-    }
+    template <typename T1, typename T2> void construct(T1 *p, const T2& value){ new(p) T1(value); }
 
     template <typename T> inline void destroy(T *p) { p->~T(); }
 
