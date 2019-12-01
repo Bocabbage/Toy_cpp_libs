@@ -28,6 +28,9 @@ namespace toy_std
         }
     };
 
+    // Initialize the new_handler with 'nullptr'
+    void (* __malloc_alloc_template::__malloc_alloc_oom_handler)() = nullptr;
+
     void* __malloc_alloc_template::allocate(size_t n)
     {
         void *result = malloc(n);
