@@ -9,7 +9,7 @@
 
 namespace toy_std
 {
-    class __malloc_alloc_template
+    class __malloc_alloc
     {
     private:
         /* oom: Out of memory */
@@ -29,9 +29,9 @@ namespace toy_std
     };
 
     // Initialize the new_handler with 'nullptr'
-    void (*__malloc_alloc_template::__malloc_alloc_oom_handler)() = nullptr;
+    void (*__malloc_alloc::__malloc_alloc_oom_handler)() = nullptr;
 
-    void* __malloc_alloc_template::allocate(size_t n)
+    void* __malloc_alloc::allocate(size_t n)
     {
         void* result = malloc(n);
         if (result == nullptr)
@@ -39,7 +39,7 @@ namespace toy_std
         return result;
     }
 
-    void* __malloc_alloc_template::oom_malloc(size_t n)
+    void* __malloc_alloc::oom_malloc(size_t n)
     {
         void (*my_malloc_handler)();
         void* result;
@@ -59,7 +59,7 @@ namespace toy_std
     const size_t __MAX_BYTES = 128;
     const size_t __NFREELISTS = __MAX_BYTES / __ALIGN;
 
-    class __default_alloc_template
+    class __default_alloc
     {
     private:
         static size_t ROUND_UP(size_t bytes)
@@ -95,10 +95,10 @@ namespace toy_std
     };
 
     // Initialization
-    char* __default_alloc_template::start_free = 0;
-    char* __default_alloc_template::end_free = 0;
-    size_t __default_alloc_template::heap_size = 0;
-    __default_alloc_template::obj* volatile __default_alloc_template::free_list[__NFREELISTS] =
+    char* __default_alloc::start_free = 0;
+    char* __default_alloc::end_free = 0;
+    size_t __default_alloc::heap_size = 0;
+    __default_alloc::obj* volatile __default_alloc::free_list[__NFREELISTS] =
     { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 }
