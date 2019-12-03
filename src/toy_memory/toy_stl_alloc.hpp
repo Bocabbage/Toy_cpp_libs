@@ -3,7 +3,7 @@
     Update date:    2019/12/03
     Author:         Zhuofan Zhang
 
-    Update Log:     2019/12/03 -- Add 'allocate/deallocate/refill' of the sub-allocator
+    Update Log:     2019/12/03 -- Add 'allocate/deallocate/refill/chunck_alloc' of the sub-allocator
 */
 #pragma once
 #include "../toy_std.hpp"
@@ -51,7 +51,8 @@ namespace toy_std
             my_malloc_handler = __malloc_alloc_oom_handler;
             if (my_malloc_handler == 0)
                 throw std::bad_alloc();
-            result = malloc(n);
+            (*my_malloc_handler)();     // call the handler to release some memory
+            result = malloc(n);         // try again
             if (result)
                 return result;
         }
@@ -109,9 +110,73 @@ namespace toy_std
     __default_alloc::obj* volatile __default_alloc::free_list[__NFREELISTS] =
     { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-    char* __default_alloc::chunk_alloc(size_t n, int& nobjs)
+    char* __default_alloc::chunk_alloc(size_t size, int& nobjs)
     {
-        // Memory Pool
+        /* Mantain a memory pool */
+        char* result;
+        size_t total_bytes = size * nobjs;
+        size_t bytes_left = end_free - start_free; // free-space in memory pool
+
+        if (bytes_left >= total_bytes)
+        {
+            result = start_free;
+            start_free += total_bytes;
+            return result;
+        }
+        else if (bytes_left >= size)
+        {
+            nobjs = bytes_left / size;
+            total_bytes = size * nobjs;
+            result = start_free;
+            start_free += total_bytes;
+            return result;
+        }
+        else
+        {
+            size_t bytes_to_get = 2 * total_bytes + ROUND_UP(heap_size >> 4);
+            // Try to use the unused blocks in memory pool:
+            if (bytes_left > 0)
+            {
+                obj* volatile* my_free_list =
+                    free_list + FREELIST_INDEX(bytes_left);
+                ((obj*)start_free)->free_list_link = *my_free_list;
+                *my_free_list = (obj*)start_free;
+            }
+
+            // allocate new heap-space for memory pool
+            start_free = (char*)malloc(bytes_to_get);
+
+            if (start_free == 0)
+            {
+                /*
+                    case that heap-space is not enough for 
+                    expanding the memory pool.
+                */
+                size_t i;
+                obj* volatile* my_free_list, * p;
+                for (i = size; i <= __MAX_BYTES; i += __ALIGN)
+                {
+                    my_free_list = free_list + FREELIST_INDEX(i);
+                    p = *my_free_list;
+                    if (p != 0)
+                    {
+                        // find unused blocks in free list
+                        *my_free_list = p->free_list_link;
+                        start_free = (char*)p;
+                        end_free = start_free + i;
+                        return chunk_alloc(size, nobjs);
+                    }
+                }
+                end_free = 0;
+                start_free = (char*)__malloc_alloc::allocate(bytes_to_get);
+                
+            }
+            heap_size += bytes_to_get;
+            end_free = start_free + bytes_to_get;
+            return chunk_alloc(size, nobjs);
+        }
+
+
     }
 
     void* __default_alloc::allocate(size_t n)
@@ -119,7 +184,7 @@ namespace toy_std
         if (n > __MAX_BYTES)
             return __malloc_alloc::allocate(n);
 
-        obj* volatile* my_free_list; // pointer of pointer
+        obj* volatile* my_free_list;
         obj* result;
 
         my_free_list = free_list + FREELIST_INDEX(n);
@@ -165,11 +230,13 @@ namespace toy_std
         if (nobjs == 1)return chunk;
         my_free_list = free_list + FREELIST_INDEX(n);
         
+        // Build free-list on the chunk:
         result = (obj*)chunk;
         *my_free_list = next_obj = (obj*)(chunk + n);
-
         for (i = 1;; i++)
         {
+            // start from 1:
+            // because the 0th will be return to client 
             current_obj = next_obj;
             next_obj = (obj*)((char*)next_obj + n);
             if (nobjs - 1 == i)
