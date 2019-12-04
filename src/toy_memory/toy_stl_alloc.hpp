@@ -1,9 +1,9 @@
 /*
-    Project:        Toy_STL_Construct
+    Project:        Toy_STL_Alloc
     Update date:    2019/12/03
     Author:         Zhuofan Zhang
 
-    Update Log:     2019/12/03 -- Add 'allocate/deallocate/refill/chunck_alloc' of the sub-allocator
+    Update Log:     2019/12/03 -- Add 'allocate/deallocate/refill' of the sub-allocator
 */
 #pragma once
 #include "../toy_std.hpp"
