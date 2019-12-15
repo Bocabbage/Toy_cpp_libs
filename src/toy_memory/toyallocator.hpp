@@ -4,8 +4,8 @@
     Author:         Zhuofan Zhang
 */
 #pragma once
-#include"../toy_std.hpp"
-#include "../toymemory.hpp"
+#include"toy_std.hpp"
+#include "toymemory.hpp"
 
 namespace toy_std
 {

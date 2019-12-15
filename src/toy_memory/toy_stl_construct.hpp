@@ -5,7 +5,7 @@
     Author:         Zhuofan Zhang
 */
 #pragma once
-#include "../toy_std.hpp"
+#include "toy_std.hpp"
 #include <new>
 
 namespace toy_std
