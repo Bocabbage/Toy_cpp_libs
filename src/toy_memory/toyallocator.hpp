@@ -12,6 +12,7 @@ namespace toy_std
     template<typename T>
     class tallocator
     {
+    public:
         using value_type = T;
         using pointer = T*;
         using const_pointer = const T*;

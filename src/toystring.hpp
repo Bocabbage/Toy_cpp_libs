@@ -56,6 +56,8 @@ namespace toy_std
 		typename Allocator = std::allocator<CharType> >
 		class tbasic_string
 	{
+
+	public:
 		/* Member Types */
 		using allocator_type = Allocator;
 		using size_type = std::size_t;

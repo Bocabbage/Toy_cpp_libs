@@ -1,6 +1,6 @@
 /*
     Project:        Toy_List
-    Update date:    2019/12/17
+    Update date:    2019/12/19
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -63,4 +63,23 @@ namespace toy_std
         __tNode_Pointer __node;
     };
 
+    /* tList */
+    template<typename T,typename Allocator = tallocator<T>>
+    class tlist
+    {
+    public:
+        /* Member types */
+        using value_type = T;
+        using allocator_type = Allocator;
+        using size_type = std::size_t;
+        using difference_type = std::ptrdiff_t;
+        using reference = value_type&;
+        using const_reference = const value_type&;
+        using pointer = Allocator::pointer;         // Since C++11 the STL use allocator_traits<>
+        using iterator = __List_Iterator;
+        using __tNode_Pointer = __tList_Node<T>*;
+
+    private:
+        __tNode_Pointer __Node;
+    };
 }
