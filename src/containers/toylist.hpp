@@ -120,6 +120,7 @@ namespace toy_std
     template<typename T, typename Allocator = tallocator<__tList_Node<T>>>
     class tlist
     {
+
     public:
         /* Member types */
         using value_type = T;
@@ -134,6 +135,25 @@ namespace toy_std
         using const_iterator = const __List_Iterator<T>;
         using const_reverse_iterator = const __List_Reverse_Iterator<T>;
         using __tNode_Pointer = __tList_Node<T>*;
+
+        /* Non-member functions */
+        template<typename T, typename Alloc>
+        friend bool operator==(const tlist<T, Alloc>&, const tlist<T, Alloc>&);
+
+        template<typename T, typename Alloc>
+        friend inline bool operator!=(const tlist<T, Alloc>&, const tlist<T, Alloc>&);
+
+        template<typename T, typename Alloc>
+        friend bool operator<(const tlist<T, Alloc>&, const tlist<T, Alloc>&);
+
+        template<typename T, typename Alloc>
+        friend bool operator<=(const tlist<T, Alloc>&, const tlist<T, Alloc>&);
+
+        template<typename T, typename Alloc>
+        friend inline bool operator>(const tlist<T, Alloc>&, const tlist<T, Alloc>&);
+
+        template<typename T, typename Alloc>
+        friend inline bool operator>=(const tlist<T, Alloc>&, const tlist<T, Alloc>&);
 
         /* Constructors */
         tlist();
@@ -180,8 +200,22 @@ namespace toy_std
 
         /* Modifiers */
         void swap(tlist<T, Allocator>&);
+
         iterator erase(iterator);
         inline iterator erase(iterator, iterator);
+
+        iterator insert(iterator, const value_type&);
+        iterator insert(iterator, value_type&&);
+        inline iterator insert(iterator, size_type, const value_type&);
+        inline iterator insert(iterator, initializer_list<T>);
+        template<typename InputIt>
+        iterator insert(iterator, InputIt, InputIt);
+
+        void push_back(value_type&&);
+        void push_front(value_type&&);
+        void pop_front();
+        void pop_back();
+
         inline void clear() noexcept;
         
 
@@ -221,6 +255,134 @@ namespace toy_std
         while (first != last)
             first = erase(first);
         return first;
+    }
+
+    template<typename T, typename Allocator>
+    typename tlist<T, Allocator>::iterator 
+    tlist<T, Allocator>::insert(iterator pos, const value_type& value)
+    {
+        __tNode_Pointer tmp = __alloc.allocate(1);
+        tmp->_data = value;
+        tmp->_next = pos->__node;
+        tmp->_prev = pos->__node->_prev;
+        pos->__node->_prev->_next = tmp;
+        pos->__node->_prev = tmp;
+        __size++;
+
+        return --pos;
+    }
+
+    template<typename T, typename Allocator>
+    typename tlist<T, Allocator>::iterator
+    tlist<T, Allocator>::insert(iterator pos, value_type&& value)
+    {
+        __tNode_Pointer tmp = __alloc.allocate(1);
+        tmp->_data = value;
+        tmp->_next = pos->__node;
+        tmp->_prev = pos->__node->_prev;
+        pos->__node->_prev->_next = tmp;
+        pos->__node->_prev = tmp;
+        __size++;
+
+        return --pos;
+    }
+
+    template<typename T, typename Allocator>
+    inline typename tlist<T, Allocator>::iterator
+    tlist<T, Allocator>::insert(iterator pos, size_type count, const value_type& value)
+    {
+        for (size_type i = 0; i < count; ++i)
+            pos = insert(pos, value);
+        return pos;
+    }
+
+    template<typename T, typename Allocator>
+    inline typename tlist<T, Allocator>::iterator
+    tlist<T, Allocator>::insert(iterator pos, initializer_list<T> ilist)
+    {
+        return insert(pos, ilist.begin(), ilist.end());
+        /*
+        auto t_tmp = ilist.begin();
+        auto t_tmp_end = ilist.end();
+        if (t_tmp == t_tmp_end)
+            return pos;
+
+        iterator res = pos;
+        res--;
+        while (t_tmp != t_tmp_end)
+        {
+            insert(pos, *t_tmp);
+            t_tmp++;
+        }
+
+        return res;
+        */
+    }
+
+    template<typename T, typename Allocator>
+    template<typename InputIt>
+    typename tlist<T, Allocator>::iterator
+    tlist<T, Allocator>::insert(iterator pos, InputIt first, InputIt last)
+    {   
+        if (first == last)
+            return pos;
+        
+        iterator res = pos;
+        res--;
+        while (first != last)
+        {
+            insert(pos, *first);
+            first++;
+        }
+
+        return res;
+    }
+
+    template<typename T, typename Allocator>
+    void
+    tlist<T, Allocator>::push_back(value_type&& value)
+    {
+        __tNode_Pointer tmp = __alloc.allocate(1);
+        tmp->_data = value;
+        tmp->_next = __Node;
+        tmp->_prev = __Node->_prev;
+        __Node->_prev->_next = tmp;
+        __Node->_prev = tmp;
+        __size++;
+    }
+
+    template<typename T, typename Allocator>
+    void
+    tlist<T, Allocator>::push_front(value_type&& value)
+    {
+        __tNode_Pointer tmp = __alloc.allocate(1);
+        tmp->_data = value;
+        tmp->_prev = __Node;
+        tmp->_next = __Node->_next;
+        __Node->_next->_prev = tmp;
+        __Node->_next = tmp;
+        __size++;
+    }
+
+    template<typename T, typename Allocator>
+    void
+    tlist<T, Allocator>::pop_front()
+    {
+        auto tmp = __Node->_next;
+        __Node->_next->_next->_prev = __Node;
+        __Node->_next = __Node->_next->_next;
+        __alloc.deallocate(tmp);
+
+    }
+
+    template<typename T, typename Allocator>
+    void
+    tlist<T, Allocator>::pop_back()
+    {
+        auto tmp = __Node->_prev;
+        __Node->_prev->_prev->_next = __Node;
+        __Node->_prev = __Node->_prev->_prev;
+        __alloc.deallocate(tmp);
     }
 
     template<typename T, typename Allocator>
@@ -365,5 +527,82 @@ namespace toy_std
         tmp->_next = __Node;
     }
 
+
+    template<typename T, typename Alloc>
+    bool operator==(const tlist<T, Alloc>& lhs, const tlist<T, Alloc>& rhs)
+    {
+        if (lhs.__size != rhs.__size)
+            return false;
+
+        auto ls = lhs.__Node->_next, rs = rhs.__Node->_next;
+        while (ls != lhs.__Node)
+        {
+            if (ls->_data != rs->_data)
+                return false;
+            ls = ls->_next;
+            rs = rs->_next;
+        }
+
+        return true;
+    }
+
+    template<typename T, typename Alloc>
+    inline bool
+    operator!=(const tlist<T, Alloc>& lhs, const tlist<T, Alloc>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    template<typename T, typename Alloc>
+    bool operator<(const tlist<T, Alloc>& lhs, const tlist<T, Alloc>& rhs)
+    {
+        auto ls = lhs.__Node->_next, rs = rhs.__Node->_next;
+        while (ls != lhs.__Node && rs != rhs.__Node)
+        {
+            if (ls->data < rs->data)
+                return true;
+            else if (ls->data > rs->data)
+                return false;
+            ls = ls->_next;
+            rs = rs->_next;
+        }
+
+        if (rs == rhs.__Node)
+            return false;
+        return true;
+    }
+
+    template<typename T, typename Alloc>
+    inline bool
+    operator>=(const tlist<T, Alloc>& lhs, const tlist<T, Alloc>& rhs)
+    {
+        return !(lhs < rhs);
+    }
+
+    template<typename T, typename Alloc>
+    bool operator<=(const tlist<T, Alloc>& lhs, const tlist<T, Alloc>& rhs)
+    {
+        auto ls = lhs.__Node->_next, rs = rhs.__Node->_next;
+        while (ls != lhs.__Node && rs != rhs.__Node)
+        {
+            if (ls->data < rs->data)
+                return true;
+            else if (ls->data > rs->data)
+                return false;
+            ls = ls->_next;
+            rs = rs->_next;
+        }
+
+        if (ls == lhs.__Node)
+            return true;
+        return false;
+    }
+
+    template<typename T, typename Alloc>
+    inline bool
+    operator>(const tlist<T, Alloc>& lhs, const tlist<T, Alloc>& rhs)
+    {
+        return !(lhs <= rhs);
+    }
 }
 
