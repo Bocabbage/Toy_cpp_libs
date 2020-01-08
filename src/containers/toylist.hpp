@@ -1,6 +1,6 @@
 /*
     Project:        Toy_List
-    Update date:    2020/1/7
+    Update date:    2020/1/8
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -46,9 +46,15 @@ namespace toy_std
 
 
         /* Constructors */
-        __List_Iterator():__node(nullptr){ }
+        __List_Iterator() = default;
         __List_Iterator(__tNode_Pointer N): __node(N){ }
         __List_Iterator(const __Self& X): __node(X.__node){ }
+        __Self& operator=(const __Self& X)
+        {
+            __Self tmp(X);
+            std::swap(__node, tmp.__node);
+            return *this;
+        }
 
 
         /* Operators */
@@ -65,9 +71,53 @@ namespace toy_std
         __tNode_Pointer __node;
     };
 
+    template<typename T,
+             typename Pointer = T*,
+             typename Reference = T&,
+             typename Distance = ptrdiff_t>
+    class __List_Reverse_Iterator
+    {
+        // Will be replaced after I have learnt the 'iterator adaptor'.
+    public:
+
+        using __Self = __List_Reverse_Iterator<T, T*, T&>;
+        using __tNode_Pointer = __tList_Node<T>*;
+
+        using iterator_category = bidirection_iterator_tag;
+        using value_type = T;
+        using pointer = Pointer;
+        using reference = Reference;
+        using const_reference = const Reference;
+        using difference_type = Distance;
+        using size_type = size_t;
+
+        /* Constructors */
+        __List_Reverse_Iterator() = default;
+        __List_Reverse_Iterator(__tNode_Pointer N) : __node(N) { }
+        __List_Reverse_Iterator(const __Self & X) : __node(X.__node) { }
+        __Self& operator=(const __Self & X)
+        {
+            __Self tmp(X);
+            std::swap(__node, tmp.__node);
+            return *this;
+        }
+
+        /* Operators */
+        __Self& operator++() { __node = __node->_prev; return *this; }
+        __Self  operator++(int) { __Self tmp = *this; ++this; return tmp; }
+        __Self& operator--() { __node = __node->_next; return *this; }
+        __Self operator--(int) { __Self tmp = *this; --this; return tmp; }
+        const_reference operator*() const { return __node->_data; }
+        reference operator*() { return const_cast<reference>(*(static_cast<const __Self*>(this))); }
+        bool operator==(const __Self& b) const { return  this->__node == b.__node; }
+        bool operator!=(const __Self& b) const { return !(*this == b); }
+
+    private:
+        __tNode_Pointer __node;
+    };
+
     /* tList */
-    // Noted that the Allocator parameter is not used here.
-    template<typename T, typename Allocator = tallocator<T>>
+    template<typename T, typename Allocator = tallocator<__tList_Node<T>>>
     class tlist
     {
     public:
@@ -79,11 +129,14 @@ namespace toy_std
         using reference = value_type&;
         using const_reference = const value_type&;
         using pointer = Allocator::pointer;         // Since C++11 the STL use allocator_traits<>
-        using iterator = __List_Iterator;
+        using iterator = __List_Iterator<T>;
+        using reverse_iterator = __List_Reverse_Iterator<T>;
+        using const_iterator = const __List_Iterator<T>;
+        using const_reverse_iterator = const __List_Reverse_Iterator<T>;
         using __tNode_Pointer = __tList_Node<T>*;
 
         /* Constructors */
-        tlist() :__alloc(), __Node(nullptr) {  }
+        tlist();
         tlist(size_type, const value_type&);
         tlist(const tlist<T, Allocator>&);
         tlist(tlist<T, Allocator>&&) noexcept;
@@ -94,18 +147,48 @@ namespace toy_std
         tlist<T, Allocator>& operator=(tlist<T, Allocator>&&);
 
         /* Destructor */
-        ~tlist() noexcept;
+        ~tlist() noexcept { clear(); }
+
+        /* Capacity */
+        bool empty() { return __size == 0; }
+        size_type size() const noexcept { return __size; }
+        size_type max_size() const noexcept { return __alloc.maxsize() / sizeof(__tList_Node<T>); }
+
+        /* Element Access */
+        const_reference front() const { return __Node->_next->_data; }
+        const_reference back() const { return __Node->_prev->_data; }
+        reference front()
+        {
+            return const_cast(static_cast<const tlist<T, Allocator>&>(*this).front());
+        }
+        reference back()
+        {
+            return const_cast(static_cast<const tlist<T, Allocator>&>(*this).back());
+        }
+
 
         /* Iterators */
+        iterator begin() noexcept { return iterator(__Node->_next); }
+        iterator end() noexcept { return iterator(__Node); }
+        const_iterator cbegin() const noexcept { return const iterator(__Node->_next); }
+        const_iterator cend() const noexcept { return const iterator(__Node); }
+
+        reverse_iterator rbegin() noexcept { return reverse_iterator(__Node->_prev); }
+        reverse_iterator rend() noexcept { return reverse_iterator(__Node); }
+        const_reverse_iterator crbegin() noexcept { return const reverse_iterator(__Node->_prev); }
+        const_reverse_iterator crend() noexcept { return const reverse_iterator(__Node); }
 
         /* Modifiers */
         void swap(tlist<T, Allocator>&);
-        void clear() noexcept;
+        iterator erase(iterator);
+        inline iterator erase(iterator, iterator);
+        inline void clear() noexcept;
         
 
     protected:
         __tNode_Pointer __Node;
-        tallocator<__tList_Node<T>> __alloc;
+        Allocator __alloc;
+        size_type __size;   // Since the C++11, size() is in complexity constant.
     };
 
     template<typename T, typename Allocator>
@@ -114,25 +197,58 @@ namespace toy_std
     {
         std::swap(this->__Node, t.__Node);
         std::swap(this->__alloc, t.__alloc);
+        std::swap(this->__size, t.__size);
     }
 
-    /*
     template<typename T, typename Allocator>
-    void
+    typename tlist<T, Allocator>::iterator
+    tlist<T, Allocator>::erase(iterator pos)
+    {
+        if (pos->__node == __Node)
+            return end();
+        auto res = iterator(pos->__node->_next);
+        pos->__node->_prev->_next = pos->__node->_next;
+        pos->__node->_next->_prev = pos->__node->_prev;
+        __size--;
+        __alloc.deallocate(pos->__node);
+        return res;
+    }
+
+    template<typename T, typename Allocator>
+    inline typename tlist<T, Allocator>::iterator
+    tlist<T, Allocator>::erase(iterator first, iterator last)
+    {
+        while (first != last)
+            first = erase(first);
+        return first;
+    }
+
+    template<typename T, typename Allocator>
+    inline void
     tlist<T, Allocator>::clear() noexcept
     {
-
+        erase(begin(), end());
     }
-    */
+
+    template<typename T, typename Allocator>
+    tlist<T, Allocator>::tlist():
+    __alloc(), __Node(nullptr), __size(0)
+    {
+        // put an empty node in the tlist.
+        __Node = __alloc.allocate(1);
+        __Node->_prev = __Node;
+        __Node->_next = __Node;
+    }
 
     template<typename T, typename Allocator>
     tlist<T, Allocator>::tlist(size_type n, const value_type& value):
-    __alloc(), __Node(nullptr)
+    __alloc(), __Node(nullptr), __size(n)
     {
         __Node = __alloc.allocate(1);
-        __Node->_data = value;
+        // Can be replaced by the last 2 lines.
+        // __Node->_prev = __Node;
+        // __Node->_next = __Node;
         auto tmp = __Node;
-        n--;
         for (size_t i = 0; i < n; i++)
         {
             tmp->_next = __alloc.allocate(1);
@@ -147,16 +263,13 @@ namespace toy_std
 
     template<typename T, typename Allocator>
     tlist<T, Allocator>::tlist(const tlist<T, Allocator>& t):
-    __alloc(), __Node(nullptr)
+    __alloc(), __Node(nullptr), __size(t.__size)
     {
-        if (t.__Node == nullptr)
-        {
-            __Node = nullptr;
-            return;
-        }
-
         __Node = __alloc.allocate(1);
-        __Node->_data = t.__Node->_data;
+        // Can be replaced by the last 2 lines.
+        // __Node->_prev = __Node;
+        // __Node->_next = __Node;
+
         auto tmp = __Node;
         auto t_tmp = t.__Node;
         while (t_tmp->_next != t.__Node)
@@ -174,10 +287,11 @@ namespace toy_std
 
     template<typename T, typename Allocator>
     tlist<T, Allocator>::tlist(tlist<T, Allocator>&& rt) noexcept:
-    __alloc(rt.__alloc), __Node(rt.__Node)
+    __alloc(rt.__alloc), __Node(rt.__Node), __size(rt.__size)
     {
-        rt.__alloc = tallocator<__tList_Node<T>>(); // new empty allocator
+        rt.__alloc = Allocator();   // new empty allocator
         rt.__Node = nullptr;
+        rt.__size = 0;
     }
 
     template<typename T, typename Allocator>
@@ -198,9 +312,11 @@ namespace toy_std
             clear();
             __alloc = rt.__alloc;
             __Node = rt.__Node;
+            __size = rt.__size;
 
-            rt.__alloc = tallocator<__tList_Node<T>>();
+            rt.__alloc = Allocator();
             rt.__Node = nullptr;
+            rt.__size = 0;
         }
 
         return *this;
@@ -209,18 +325,10 @@ namespace toy_std
     template<typename T, typename Allocator>
     template<typename InputIt>
     tlist<T, Allocator>::tlist(InputIt first, InputIt last):
-    __alloc(), __Node(nullptr)
+    __alloc(), __Node(nullptr), __size(0)
     {
-        if (first == last)
-        {
-            __Node = nullptr;
-            return;
-        }
-
         __Node = __alloc.allocate(1);
-        __Node->_data = *first;
         auto tmp = __Node;
-        first++;
         while (first != last)
         {
             tmp->_next = __alloc.allocate(1);
@@ -228,6 +336,7 @@ namespace toy_std
             tmp = tmp->_next;
             tmp->_data = *first;
             first++;
+            __size++;
         }
 
         __Node->_prev = tmp;
@@ -236,26 +345,20 @@ namespace toy_std
 
     template<typename T, typename Allocator>
     tlist<T, Allocator>::tlist(initializer_list<value_type> ilist):
-    __alloc(), __Node(nullptr)
+    __alloc(), __Node(nullptr), __size(0)
     {
-        if (ilist.size() == 0)
-        {
-            __Node = nullptr;
-            return;
-        }
-
         __Node = __alloc.allocate(1);
-        auto t_tmp = ilist.begin()
-        __Node->_data = *t_tmp;
+        auto t_tmp = ilist.begin();
+        auto t_tmp_end = ilist.end();
         auto tmp = __Node;
-        t_tmp++;
-        while (t_tmp != ilist.end())
+        while (t_tmp != t_tmp_end)
         {
             tmp->_next = __alloc.allocate(1);
             tmp->_next->_prev = tmp;
             tmp = tmp->_next;
             tmp->_data = *t_tmp;
             t_tmp++;
+            __size++;
         }
 
         __Node->_prev = tmp;

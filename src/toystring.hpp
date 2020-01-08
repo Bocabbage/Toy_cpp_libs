@@ -129,7 +129,7 @@ namespace toy_std
 
 
 		/* Destructor */
-		~tbasic_string() noexcept;
+		inline ~tbasic_string() noexcept;
 
 
 		/* Capability */
@@ -351,6 +351,7 @@ namespace toy_std
 	}
 
 	template<typename CharType, typename Allocator >
+	inline
 	tbasic_string<CharType, Allocator>::~tbasic_string() noexcept
 	{
 		_do_destroy();

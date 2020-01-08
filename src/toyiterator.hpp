@@ -24,12 +24,13 @@ namespace toy_std
 	/* Iterator categories' tags */
 	struct input_iterator_tag {};
 	struct output_iterator_tag {};
-	struct forward_iterator_tag: public input_iterator_tag {};
-	struct bidirection_iterator_tag: public forward_iterator_tag {};
-	struct random_access_iterator_tag: public bidirection_iterator_tag {};
+	struct forward_iterator_tag : public input_iterator_tag {};
+	struct bidirection_iterator_tag : public forward_iterator_tag {};
+	struct random_access_iterator_tag : public bidirection_iterator_tag {};
 
 
 	/* Origin Iterator template */
+	/*
 	template<typename IterCategory,
 			 typename T,
 			 typename Pointer = T*,
@@ -44,7 +45,7 @@ namespace toy_std
 		using reference = Reference;
 		using difference_type = Distance;
 	};
-
+	*/
 
 	/* Traits */
 	template<typename Iter>
@@ -86,7 +87,7 @@ namespace toy_std
 	/* Functions for type-checking */
 	template<typename Iter>
 	inline typename iterator_traits<Iter>::iterator_category
-	__iterator_category(const Iter&)
+		__iterator_category(const Iter&)
 	{
 		typename iterator_traits<Iter>::iterator_category category;
 		return category;
@@ -94,14 +95,14 @@ namespace toy_std
 
 	template<typename Iter>
 	inline typename iterator_traits<Iter>::value_type*
-	__value_type(const Iter&)
+		__value_type(const Iter&)
 	{
 		return static_cast<typename iterator_traits<Iter>::value_type*>(0);
 	}
 
 	template<typename Iter>
 	inline typename iterator_traits<Iter>::difference_type*
-	__difference_type(const Iter&)
+		__difference_type(const Iter&)
 	{
 		return static_cast<typename iterator_traits<Iter>::difference_type*>(0);
 	}
@@ -110,7 +111,7 @@ namespace toy_std
 	/* distance function */
 	template<typename InputIter>
 	inline typename iterator_traits<InputIter>::difference_type
-	__distance(InputIter first, InputIter last, input_iterator_tag)
+		__distance(InputIter first, InputIter last, input_iterator_tag)
 	{
 		typename iterator_traits<InputIter>::difference_type n = 0;
 		while (first != last)
@@ -122,14 +123,14 @@ namespace toy_std
 
 	template<typename RandomAccessIter>
 	inline typename iterator_traits<RandomAccessIter>::difference_type
-	__distance(RandomAccessIter first, RandomAccessIter last, random_access_iterator_tag)
+		__distance(RandomAccessIter first, RandomAccessIter last, random_access_iterator_tag)
 	{
 		return last - first;
 	}
 
 	template<typename Iter>
 	inline typename iterator_traits<Iter>::difference_type
-	distance(Iter first, Iter last)
+		distance(Iter first, Iter last)
 	{
 		return __distance(first, last, __difference_type(first));
 	}
@@ -138,7 +139,7 @@ namespace toy_std
 	/* advanced function */
 	template<typename InputIter, typename Distance>
 	inline void
-	__advanced(InputIter it, Distance n, input_iterator_tag)
+		__advanced(InputIter it, Distance n, input_iterator_tag)
 	{
 		while (n > 0)
 		{
@@ -148,9 +149,9 @@ namespace toy_std
 
 	template<typename BidirIter, typename Distance>
 	inline void
-	__advanced(BidirIter it, Distance n, bidirection_iterator_tag)
+		__advanced(BidirIter it, Distance n, bidirection_iterator_tag)
 	{
-		if( n >= 0)
+		if (n >= 0)
 			while (n > 0)
 			{
 				it++; n--;
@@ -164,14 +165,14 @@ namespace toy_std
 
 	template<typename RandomAccessIter, typename Distance>
 	inline void
-	__advanced(RandomAccessIter it, Distance n, random_access_iterator_tag)
+		__advanced(RandomAccessIter it, Distance n, random_access_iterator_tag)
 	{
 		it += n;
 	}
 
 	template<typename Iter, typename Distance>
 	inline void
-	advanced(Iter it, Distance n)
+		advanced(Iter it, Distance n)
 	{
 		__advanced(it, n, __iterator_category(it));
 	}
