@@ -1,6 +1,6 @@
 /*
     Project:        Toy_List
-    Update date:    2020/1/8
+    Update date:    2020/1/9
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -167,7 +167,14 @@ namespace toy_std
         tlist<T, Allocator>& operator=(tlist<T, Allocator>&&);
 
         /* Destructor */
-        ~tlist() noexcept { clear(); }
+        ~tlist() noexcept 
+        { 
+            clear();
+            if(__Node != nullptr)
+                // r-value constructor/= will bring a empty list
+                // with __Node point to NULL.
+                __alloc.deallocate(__Node); 
+        }
 
         /* Capacity */
         bool empty() { return __size == 0; }
@@ -217,6 +224,13 @@ namespace toy_std
         void pop_back();
 
         inline void clear() noexcept;
+
+        /* Operations */
+        void merge(tlist<T, Allocator>&&);
+        void reverse() noexcept;
+        void remove(const value_type&);
+        void unique();
+        void sort();
         
 
     protected:
@@ -393,6 +407,48 @@ namespace toy_std
     }
 
     template<typename T, typename Allocator>
+    void tlist<T, Allocator>::merge(tlist<T, Allocator>&& t)
+    {
+        auto p_size = __size;
+        auto p = __Node->_next;
+        auto q = t.__Node;
+        while (p_size > 0 && t.__size > 0)
+        {
+            q = t.__Node->_next;
+            if (p->_data < q->_data)
+            {
+                q->_prev->_next = q->_next;
+                q->_next->_prev = q->_prev;
+
+                p->_prev->_next = q;
+                p->_prev = q;
+
+                t.__size--;
+                __size++;
+            }
+            else
+            {
+                p_size--;
+                p = p->_next;
+            }
+                
+        }
+
+        if (t.__size > 0)
+        {
+            __Node->_prev->_next = t.__Node->_next;
+            t.__Node->_next->_prev = __Node->_prev;
+            __Node->_prev = t.__Node->_prev;
+            t.__Node->_prev->_next = __Node;
+
+            t.__Node->_prev = t.__Node;
+            t.__Node->_next = t.__Node;
+            t.__size = 0;
+        }
+
+    }
+
+    template<typename T, typename Allocator>
     tlist<T, Allocator>::tlist():
     __alloc(), __Node(nullptr), __size(0)
     {
@@ -451,8 +507,8 @@ namespace toy_std
     tlist<T, Allocator>::tlist(tlist<T, Allocator>&& rt) noexcept:
     __alloc(rt.__alloc), __Node(rt.__Node), __size(rt.__size)
     {
-        rt.__alloc = Allocator();   // new empty allocator
         rt.__Node = nullptr;
+        rt.__alloc = Allocator();
         rt.__size = 0;
     }
 
@@ -476,8 +532,8 @@ namespace toy_std
             __Node = rt.__Node;
             __size = rt.__size;
 
-            rt.__alloc = Allocator();
             rt.__Node = nullptr;
+            rt.__alloc = Allocator();
             rt.__size = 0;
         }
 
