@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Mem_Tools
-    Update date:    2019/12/16
+    Update date:    2020/1/13
     Author:         Zhuofan Zhang
 
     Update Log:     2019/12/16 -- Implement 'copy','fill','fill_n'.
@@ -13,6 +13,15 @@
 
 namespace toy_std
 {
+
+/* swap */
+    template<typename T>
+    void swap(T& a, T& b)
+    {
+        T tmp = a;
+        a = b;
+        b = a;
+    }
 
 /* fill */
     template<typename ForwardIterator,typename T>
@@ -32,7 +41,7 @@ namespace toy_std
     }
 
 
-/*  copy   */
+/* copy */
     /* Dispatch template */
     // Generalized Version
     template<typename InputIterator, typename OutputIterator>
@@ -134,5 +143,5 @@ namespace toy_std
         wmemmove(result, first, (last - first));
         return result + (last - first);
     }
-
+    
 }

@@ -1,12 +1,13 @@
 /*
     Project:        Toy_List
-    Update date:    2020/1/9
+    Update date:    2020/1/13
     Author:         Zhuofan Zhang
 */
 #pragma once
 #include"toy_std.hpp"
 #include"toymemory.hpp"
 #include"toyiterator.hpp"
+#include"toyalgo_base.hpp"
 
 using std::initializer_list;
 
@@ -52,7 +53,7 @@ namespace toy_std
         __Self& operator=(const __Self& X)
         {
             __Self tmp(X);
-            std::swap(__node, tmp.__node);
+            toy_std::swap(__node, tmp.__node);
             return *this;
         }
 
@@ -98,7 +99,7 @@ namespace toy_std
         __Self& operator=(const __Self & X)
         {
             __Self tmp(X);
-            std::swap(__node, tmp.__node);
+            toy_std::swap(__node, tmp.__node);
             return *this;
         }
 
@@ -237,15 +238,16 @@ namespace toy_std
         __tNode_Pointer __Node;
         Allocator __alloc;
         size_type __size;   // Since the C++11, size() is in complexity constant.
+
     };
 
     template<typename T, typename Allocator>
     void
     tlist<T, Allocator>::swap(tlist<T, Allocator>& t)
     {
-        std::swap(this->__Node, t.__Node);
-        std::swap(this->__alloc, t.__alloc);
-        std::swap(this->__size, t.__size);
+        toy_std::swap(this->__Node, t.__Node);
+        toy_std::swap(this->__alloc, t.__alloc);
+        toy_std::swap(this->__size, t.__size);
     }
 
     template<typename T, typename Allocator>
@@ -446,6 +448,68 @@ namespace toy_std
             t.__size = 0;
         }
 
+    }
+
+    template<typename T, typename Allocator>
+    void
+    tlist<T, Allocator>::reverse() noexcept
+    {
+        auto tmp = __Node->_next;
+        while (tmp != __Node)
+        {
+            tmp = tmp->_next;
+            toy_std::swap(tmp->_prev, tmp->_next);
+        }
+    }
+
+    template<typename T, typename Allocator>
+    void
+    tlist<T, Allocator>::remove(const value_type& value)
+    {
+        auto tmp = __Node->_next;
+        while (tmp != __Node)
+        {
+            if (tmp->_data == value)
+                tmp = erase(iterator(tmp));
+            else
+                tmp = tmp->_next;
+        }
+    }
+
+    template<typename T, typename Allocator>
+    void
+    tlist<T, Allocator>::unique()
+    {
+        auto tmp = __Node->_next;
+        value_type _now_value = tmp->_data;
+        while (tmp != __Node)
+        {
+            if (tmp->_value != _now_value)
+            {
+                tmp = tmp->_next;
+                _now_value = tmp->_value;
+            }
+            else
+                tmp = erase(iterator(tmp));
+        }
+    }
+
+    template<typename T, typename Allocator>
+    void
+    tlist<T, Allocator>::sort()
+    {
+        // Selection Sort
+        auto tmp = __Node->_next;
+        auto max_suffix = tmp;
+        while (tmp != __Node)
+        {
+            max_suffix = __Node->_next;
+            for (auto suffix = __Node->_next; suffix != tmp; ++suffix)
+                if (suffix->_data > max_suffix->_data)
+                    max_suffix = suffix;
+            toy_std::swap(tmp->_data, max_suffix->_data);
+            tmp = tmp->_next;
+        }
     }
 
     template<typename T, typename Allocator>
