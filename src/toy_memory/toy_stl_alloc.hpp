@@ -76,8 +76,8 @@ namespace toy_std
             char client_data[1];        // The client sees this.
         };
 
-        /* 
-            16 free-lists 
+        /*
+            16 free-lists
             manage blocks size of:
             8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128
         */
@@ -92,7 +92,7 @@ namespace toy_std
 
         static void* refill(size_t);
         static char* chunk_alloc(size_t, int&);
-        
+
         // Chunk allocation state
         static char* start_free;    // memory pool start, only be modified by chunk_alloc()
         static char* end_free;      // memory pool end, only be modified by chunk_alloc()
@@ -149,7 +149,7 @@ namespace toy_std
             if (start_free == 0)
             {
                 /*
-                    case that heap-space is not enough for 
+                    case that heap-space is not enough for
                     expanding the memory pool.
                 */
                 size_t i;
@@ -169,7 +169,7 @@ namespace toy_std
                 }
                 end_free = 0;
                 start_free = (char*)__malloc_alloc::allocate(bytes_to_get);
-                
+
             }
             heap_size += bytes_to_get;
             end_free = start_free + bytes_to_get;
@@ -195,7 +195,7 @@ namespace toy_std
             void* r = refill(ROUND_UP(n));
             return r;
         }
-    
+
         // Modify the free list
         *my_free_list = result->free_list_link;
         return result;
@@ -208,10 +208,10 @@ namespace toy_std
             __malloc_alloc::deallocate(p);
             return;
         }
-        
-        obj* q = (obj*) p;
+
+        obj* q = (obj*)p;
         obj* volatile* my_free_list = free_list + FREELIST_INDEX(n);
-        
+
         q->free_list_link = *my_free_list;
         *my_free_list = q;
 
@@ -229,7 +229,7 @@ namespace toy_std
 
         if (nobjs == 1)return chunk;
         my_free_list = free_list + FREELIST_INDEX(n);
-        
+
         // Build free-list on the chunk:
         result = (obj*)chunk;
         *my_free_list = next_obj = (obj*)(chunk + n);

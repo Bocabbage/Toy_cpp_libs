@@ -1,11 +1,13 @@
 /*
 	Project:        Toy_Type_Traits
-	Update date:    2019/12/15
+	Update date:    2020/1/14
 	Author:         Zhuofan Zhang
 
+	Update Logs: 2020/1/14 -- Add 'Is_Integral_type_traits'.(for tlist-constructors)
+
 	Notes:(Refer to 'The Annotated STL sources' book)
-		This is NOT an internal header file.
-		You can attempt to use and modify it directly.
+		   This is NOT an internal header file.
+		   You can attempt to use and modify it directly.
 */
 #pragma once
 #define __STL_TEMPLATE_NULL template<>
@@ -16,7 +18,7 @@ namespace toy_std
 	struct __true_type {};
 	struct __false_type {};
 
-	/* Type-traits template */
+/* Type-traits template */
 	template<typename T>
 	struct __type_traits
 	{
@@ -159,5 +161,65 @@ namespace toy_std
 		using is_POD_type = __true_type;
 	};
 
+/* Is Integral Type template */
+	template<typename T>
+	struct __Is_Integral_type_traits
+	{
+		using is_int = __false_type;
+	};
+
+	__STL_TEMPLATE_NULL
+	struct __Is_Integral_type_traits<char>
+	{
+		using is_int = __true_type;
+	};
+
+	__STL_TEMPLATE_NULL
+	struct __Is_Integral_type_traits<unsigned char>
+	{
+		using is_int = __true_type;
+	};
+
+	__STL_TEMPLATE_NULL
+	struct __Is_Integral_type_traits<short>
+	{
+		using is_int = __true_type;
+	};
+
+	__STL_TEMPLATE_NULL
+	struct __Is_Integral_type_traits<unsigned short>
+	{
+		using is_int = __true_type;
+	};
+
+	__STL_TEMPLATE_NULL 
+	struct __Is_Integral_type_traits<int>
+	{
+		using is_int = __true_type;
+	};
+
+	__STL_TEMPLATE_NULL
+		struct __Is_Integral_type_traits<unsigned int>
+	{
+		using is_int = __true_type;
+	};
+
+	__STL_TEMPLATE_NULL
+	struct __Is_Integral_type_traits<long>
+	{
+		using is_int = __true_type;
+	};
+
+	__STL_TEMPLATE_NULL
+	struct __Is_Integral_type_traits<unsigned long>
+	{
+		using is_int = __true_type;
+	};
+
+	__STL_TEMPLATE_NULL
+	struct __Is_Integral_type_traits<long long>
+	{
+		using is_int = __true_type;
+	};
 
 }

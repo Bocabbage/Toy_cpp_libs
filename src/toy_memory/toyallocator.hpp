@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Allocator
-    Update date:    2019/12/04
+    Update date:    2020/1/14
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -25,14 +25,14 @@ namespace toy_std
         // friend bool operator==(const tallocator<T1>&, const tallocator<T2>&) noexcept;
 
         /* Constants */
-        static const size_type max_size = std::numeric_limits<size_type>::max();
+        static const size_type __max_size = std::numeric_limits<size_type>::max();
 
     private:
         __default_alloc __alloc;
 
     public:
         /* Constructors */
-        tallocator() { } noexcept;
+        tallocator() noexcept { } ;
 
         // tallocator(tallocator<T>&) noexcept;
 
@@ -40,7 +40,7 @@ namespace toy_std
         // tallocator(tallocator<U>&) noexcept;
 
         /* Destructor */
-        ~tallocator() { } noexcept;
+        ~tallocator() noexcept { } ;
 
 
 
@@ -49,34 +49,34 @@ namespace toy_std
         void construct(pointer, const_reference);
         void construct(pointer, size_type, const_pointer);
         void destroy(pointer);
-        size_type max_size() { return max_size; }
+        size_type max_size() { return __max_size; }
 
     };
 
     template<typename T>
     typename tallocator<T>::pointer
-    tallocator<T>::allocate(size_type n)
+        tallocator<T>::allocate(size_type n)
     {
-        return (n == 0 ? nullptr : __alloc.allocate(n * sizeof(T)));
+        return (n == 0 ? nullptr : (pointer)__alloc.allocate(n * sizeof(T)));
     }
 
     template<typename T>
     void
-    tallocator<T>::deallocate(pointer p, size_type n)
+        tallocator<T>::deallocate(pointer p, size_type n)
     {
         __alloc.deallocate(p, n * sizeof(T));
     }
 
     template<typename T>
     void
-    tallocator<T>::construct(pointer p, const_reference x)
+        tallocator<T>::construct(pointer p, const_reference x)
     {
         construct(p, x);
     }
 
     template<typename T>
     void
-    tallocator<T>::construct(pointer p, size_type n, const_pointer first)
+        tallocator<T>::construct(pointer p, size_type n, const_pointer first)
     {
         for (size_t i = 0; i < n; ++i)
             construct(p + i, *(first + i));
@@ -84,7 +84,7 @@ namespace toy_std
 
     template<typename T>
     void
-    tallocator<T>::destroy(pointer p)
+        tallocator<T>::destroy(pointer p)
     {
         destroy(p);
     }
