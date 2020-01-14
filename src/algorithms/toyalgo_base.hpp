@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Mem_Tools
-    Update date:    2020/1/13
+    Update date:    2020/1/14
     Author:         Zhuofan Zhang
 
     Update Log:     2019/12/16 -- Implement 'copy','fill','fill_n'.
@@ -13,6 +13,19 @@
 
 namespace toy_std
 {
+
+/* max */
+    template<typename T>
+    inline const T& max(const T& a, const T& b)
+    {
+        return a > b ? a : b;
+    }
+
+    template<typename T, typename Compare>
+    inline const T& max(const T& a, const T& b, Compare cmp)
+    {
+        return cmp(a, b) ? a : b;
+    }
 
 /* swap */
     template<typename T>
