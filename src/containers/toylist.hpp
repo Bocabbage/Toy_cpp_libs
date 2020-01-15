@@ -1,6 +1,6 @@
 /*
     Project:        Toy_List
-    Update date:    2020/1/14
+    Update date:    2020/1/15
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -62,9 +62,9 @@ namespace toy_std
 
         /* Operators */
         __Self& operator++() { __node = __node->_next; return *this; }
-        __Self  operator++(int) { __Self tmp = *this; ++this; return tmp; }
+        __Self  operator++(int) { __Self tmp = *this; ++*this; return tmp; }
         __Self& operator--() { __node = __node->_prev; return *this; }
-        __Self operator--(int) { __Self tmp = *this; --this; return tmp; }
+        __Self operator--(int) { __Self tmp = *this; --*this; return tmp; }
         const_reference operator*() const { return __node->_data; }
         reference operator*() { return const_cast<reference>(static_cast<const __Self*>(this)->operator*()); }
         bool operator==(const __Self& b) const { return  this->__node == b.__node; }
@@ -108,11 +108,11 @@ namespace toy_std
 
         /* Operators */
         __Self& operator++() { __node = __node->_prev; return *this; }
-        __Self  operator++(int) { __Self tmp = *this; ++this; return tmp; }
+        __Self  operator++(int) { __Self tmp = *this; ++*this; return tmp; }
         __Self& operator--() { __node = __node->_next; return *this; }
-        __Self operator--(int) { __Self tmp = *this; --this; return tmp; }
+        __Self operator--(int) { __Self tmp = *this; --*this; return tmp; }
         const_reference operator*() const { return __node->_data; }
-        reference operator*() { return const_cast<reference>(*(static_cast<const __Self*>(this))); }
+        reference operator*() { return const_cast<reference>(static_cast<const __Self*>(this)->operator*()); }
         bool operator==(const __Self& b) const { return  this->__node == b.__node; }
         bool operator!=(const __Self& b) const { return !(*this == b); }
 
@@ -213,13 +213,13 @@ namespace toy_std
 
         iterator erase(iterator);
         inline iterator erase(iterator, iterator);
-
+        inline iterator insert(iterator, size_type, const value_type&);
         iterator insert(iterator, const value_type&);
         iterator insert(iterator, value_type&&);
-        inline iterator insert(iterator, size_type, const value_type&);
-        inline iterator insert(iterator, initializer_list<T>);
         template<typename InputIt>
         iterator insert(iterator, InputIt, InputIt);
+        inline iterator insert(iterator, initializer_list<T>);
+        
 
         void push_back(value_type&&);
         void push_front(value_type&&);
@@ -347,7 +347,7 @@ namespace toy_std
     }
 
     template<typename T, typename Allocator>
-    inline typename tlist<T, Allocator>::iterator
+    typename tlist<T, Allocator>::iterator
     tlist<T, Allocator>::insert(iterator pos, size_type count, const value_type& value)
     {
         for (size_type i = 0; i < count; ++i)
@@ -359,23 +359,8 @@ namespace toy_std
     inline typename tlist<T, Allocator>::iterator
     tlist<T, Allocator>::insert(iterator pos, initializer_list<T> ilist)
     {
+        // return insert_int_dispatch(pos, ilist.begin(), ilist.end(), __false_type());
         return insert(pos, ilist.begin(), ilist.end());
-        /*
-        auto t_tmp = ilist.begin();
-        auto t_tmp_end = ilist.end();
-        if (t_tmp == t_tmp_end)
-            return pos;
-
-        iterator res = pos;
-        res--;
-        while (t_tmp != t_tmp_end)
-        {
-            insert(pos, *t_tmp);
-            t_tmp++;
-        }
-
-        return res;
-        */
     }
 
     template<typename T, typename Allocator>
@@ -385,9 +370,9 @@ namespace toy_std
     {   
         if (first == last)
             return pos;
-        
-        iterator res = pos;
-        res--;
+
+        iterator res = insert(pos, *first);
+        first++;
         while (first != last)
         {
             insert(pos, *first);
@@ -465,8 +450,11 @@ namespace toy_std
                 q->_prev->_next = q->_next;
                 q->_next->_prev = q->_prev;
 
+                q->_prev = p->_prev;
+                q->_next = p;
                 p->_prev->_next = q;
                 p->_prev = q;
+
 
                 t.__size--;
                 __size++;
@@ -500,22 +488,24 @@ namespace toy_std
         auto tmp = __Node->_next;
         while (tmp != __Node)
         {
+            auto _tmp = tmp;
             tmp = tmp->_next;
-            toy_std::swap(tmp->_prev, tmp->_next);
+            toy_std::swap(_tmp->_prev, _tmp->_next);
         }
+        toy_std::swap(__Node->_next, __Node->_prev);
     }
 
     template<typename T, typename Allocator>
     void
     tlist<T, Allocator>::remove(const value_type& value)
     {
-        auto tmp = __Node->_next;
-        while (tmp != __Node)
+        auto tmp = iterator(__Node->_next);
+        while (tmp != end())
         {
-            if (tmp->_data == value)
-                tmp = erase(iterator(tmp));
+            if (*tmp == value)
+                tmp = erase(tmp);
             else
-                tmp = tmp->_next;
+                ++tmp;
         }
     }
 
@@ -523,17 +513,17 @@ namespace toy_std
     void
     tlist<T, Allocator>::unique()
     {
-        auto tmp = __Node->_next;
-        value_type _now_value = tmp->_data;
-        while (tmp != __Node)
+        auto tmp = iterator(__Node->_next);
+        value_type _now_value = *(tmp++);
+        while (tmp != end())
         {
-            if (tmp->_value != _now_value)
+            if (*tmp != _now_value)
             {
-                tmp = tmp->_next;
-                _now_value = tmp->_value;
+                ++tmp;
+                _now_value = *tmp;
             }
             else
-                tmp = erase(iterator(tmp));
+                tmp = erase(tmp);
         }
     }
 
@@ -546,8 +536,8 @@ namespace toy_std
         auto max_suffix = tmp;
         while (tmp != __Node)
         {
-            max_suffix = __Node->_next;
-            for (auto suffix = __Node->_next; suffix != tmp; ++suffix)
+            max_suffix = tmp;
+            for (auto suffix = tmp->_next; suffix != __Node; suffix = suffix->_next)
                 if (suffix->_data > max_suffix->_data)
                     max_suffix = suffix;
             toy_std::swap(tmp->_data, max_suffix->_data);

@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Mem_Tools
-    Update date:    2020/1/14
+    Update date:    2020/1/15
     Author:         Zhuofan Zhang
 
     Update Log:     2019/12/16 -- Implement 'copy','fill','fill_n'.
@@ -33,7 +33,7 @@ namespace toy_std
     {
         T tmp = a;
         a = b;
-        b = a;
+        b = tmp;
     }
 
 /* fill */
