@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Deque
-    Update date:    2020/1/14
+    Update date:    2020/1/15
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -141,12 +141,15 @@ namespace toy_std
             return (__node == x.__node) ? (__cur < x.__cur) : (__node < x.__node);
         }
 
+        
+
     private:
+
         value_type* __cur;
         value_type* __first;
         value_type* __last;
         map_pointer __node;
-
+        
         void set_node(map_pointer new_node)
         {
             __node = new_node;
@@ -155,4 +158,70 @@ namespace toy_std
         }
     };
 
+    template<typename T,
+             std::size_t BuffSize = 0>
+    class tdeque
+    {
+    public:
+        /* Member types */
+        using value_type = T;
+        using allocator_type = tallocator<T>;
+        using size_type = std::size_t;
+        using difference_type = std::ptrdiff_t;
+        using reference = value_type&;
+        using const_reference = const value_type&;
+        using pointer = value_type*;
+        using const_pointer = const value_type*;
+        using iterator = __Deque_Iterator<BuffSize, T>;
+        using const_iterator = const __Deque_Iterator<BuffSize, T>;
+
+
+
+
+    protected:
+        using map_pointer = value_type**;
+
+        iterator __start;   // The first node
+        iterator __finish;  // The last node
+
+        map_pointer __map;
+        size_type __map_size;
+
+        tallocator<value_type> __data_allocator;
+        tallocator<pointer> __map_allocator;
+
+        void __fill_initialize(size_type, const value_type&);
+        void __create_map_and_nodes(size_type);
+    };
+
+    template<typename T, std::size_t BuffSize>
+    void 
+    tdeque<T, BuffSize>::__fill_initialize(size_type n, const value_type& value)
+    {
+        __create_map_and_nodes(n);
+        map_pointer cur;
+        for (cur = __start.__node; cur < __finish.__node; ++cur)
+            uninitialized_fill(__finish.__first, __finish.__cur, value);
+    }
+
+    template<typename T, std::size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::__create_map_and_nodes(size_type num_elements)
+    {
+        size_type num_nodes = num_elements / iterator::buffer_size() + 1;
+        __map_size = max(8, num_nodes + 2);
+        __map = __map_allocator.allocate(__map_size);
+
+        map_pointer  nstart = __map + (__map_size - num_nodes) / 2;
+        map_pointer nfinish = nstart + num_nodes - 1;
+
+        map_pointer cur;
+        for (cur = nstart; cur <= nfinish; ++cur)
+            *cur = __data_allocator(iterator::buffer_size());
+
+        __start.set_node(nstart);
+        __finish.set_node(nfinish);
+        __start.__cur = __start.__first;
+        __finish.__cur = __finish.__first + num_elements % iterator::buffer_size();
+    }
 }
