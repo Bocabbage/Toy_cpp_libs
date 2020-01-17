@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Deque
-    Update date:    2020/1/15
+    Update date:    2020/1/17
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -51,7 +51,7 @@ namespace toy_std
         ~__Deque_Iterator() = default;
 
         /* Operators */
-        reference operator*() { return *cur; }
+        reference operator*() { return *__cur; }
 
         pointer operator->() { return &(operator*()); }
 
@@ -75,7 +75,7 @@ namespace toy_std
 
         __Self& operator--()
         {
-            if (__cur == start)
+            if (__cur == __first)
             {
                 set_node(__node - 1);
                 __cur = __last;
@@ -141,32 +141,31 @@ namespace toy_std
             return (__node == x.__node) ? (__cur < x.__cur) : (__node < x.__node);
         }
 
-        
-
-    private:
-
-        value_type* __cur;
-        value_type* __first;
-        value_type* __last;
-        map_pointer __node;
-        
         void set_node(map_pointer new_node)
         {
             __node = new_node;
             first = *new_node;
             last = first + difference_type(buffer_size());
         }
+
+    private:
+
+        value_type* __cur;      // Currrent element in this buffer
+        value_type* __first;    // First element in this buffer
+        value_type* __last;     // Last element in this buffer 
+        map_pointer __node;     // (Line) pointer to the buffer
+        
     };
 
     template<typename T,
-             std::size_t BuffSize = 0>
+             size_t BuffSize = 0>
     class tdeque
     {
     public:
         /* Member types */
         using value_type = T;
         using allocator_type = tallocator<T>;
-        using size_type = std::size_t;
+        using size_type = size_t;
         using difference_type = std::ptrdiff_t;
         using reference = value_type&;
         using const_reference = const value_type&;
@@ -175,14 +174,33 @@ namespace toy_std
         using iterator = __Deque_Iterator<BuffSize, T>;
         using const_iterator = const __Deque_Iterator<BuffSize, T>;
 
+        /* Constructors */
+        tdeque(): __start(), __finish(), __map(), __map_size()
+        { __create_map_and_nodes(0); }
+        inline tdeque(size_type, const value_type&);
+        tdeque(const tdeque<T, BuffSize>&);
+        tdeque(tdeque<T, BuffSize>&&);
 
+        /* Iterators */
+        const_iterator cbegin() const noexcept { return const __start; }
+        const_iterator cend() const noexcept { return const __finish; }
+        iterator begin() noexcept { return __start; }
+        iterator end() noexcept { return __finish; }
 
+        /* Element Access */
+        reference front() { return *__start; }
+        reference back() { return *(__finish - 1); }
+        const_reference operator[](size_type pos) const { return *(__start + pos); }
+        reference operator[](size_type pos) { return const_cast<reference>(static_cast<const_reference>(*this)[pos]); }
+
+        /* Capacity */
+        size_type size() { return __finish - __start; }
 
     protected:
         using map_pointer = value_type**;
 
-        iterator __start;   // The first node
-        iterator __finish;  // The last node
+        iterator __start;   // The first element
+        iterator __finish;  // The next one of the last element
 
         map_pointer __map;
         size_type __map_size;
@@ -194,17 +212,18 @@ namespace toy_std
         void __create_map_and_nodes(size_type);
     };
 
-    template<typename T, std::size_t BuffSize>
+    template<typename T, size_t BuffSize>
     void 
     tdeque<T, BuffSize>::__fill_initialize(size_type n, const value_type& value)
     {
         __create_map_and_nodes(n);
         map_pointer cur;
         for (cur = __start.__node; cur < __finish.__node; ++cur)
-            uninitialized_fill(__finish.__first, __finish.__cur, value);
+            uninitialized_fill(*cur, *cur + iterator::buffer_size(), value);
+        uninitialized_fill(__finish.__first, __finish.__cur, value);
     }
 
-    template<typename T, std::size_t BuffSize>
+    template<typename T, size_t BuffSize>
     void
     tdeque<T, BuffSize>::__create_map_and_nodes(size_type num_elements)
     {
@@ -212,16 +231,53 @@ namespace toy_std
         __map_size = max(8, num_nodes + 2);
         __map = __map_allocator.allocate(__map_size);
 
-        map_pointer  nstart = __map + (__map_size - num_nodes) / 2;
-        map_pointer nfinish = nstart + num_nodes - 1;
+        map_pointer  node_start = __map + (__map_size - num_nodes) / 2;
+        map_pointer node_finish = node_start + num_nodes - 1;
 
         map_pointer cur;
-        for (cur = nstart; cur <= nfinish; ++cur)
+        for (cur = node_start; cur <= node_finish; ++cur)
             *cur = __data_allocator(iterator::buffer_size());
 
-        __start.set_node(nstart);
-        __finish.set_node(nfinish);
+        __start.set_node(node_start);
+        __finish.set_node(node_finish);
         __start.__cur = __start.__first;
         __finish.__cur = __finish.__first + num_elements % iterator::buffer_size();
+    }
+
+    template<typename T, size_t BuffSize>
+    inline
+    tdeque<T, BuffSize>::tdeque(size_type count, const value_type& value):
+    __start(), __finish(), __map(), __map_size()
+    {
+        __fill_initialize(count, value);
+    }
+
+    template<typename T, size_t BuffSize>
+    tdeque<T, BuffSize>::tdeque(const tdeque<T, BuffSize>& other):
+    __start(), __finish(), __map(), __map_size()
+    {
+        __create_map_and_nodes(other.size());
+        auto cur = __start, o_cur = other.__start;
+        while (o_cur != other.__finish)
+        {
+            *cur = *o_cur;
+            o_cur++;
+            cur++;
+        }
+        __finish = cur;
+    }
+
+    template<typename T, size_t BuffSize>
+    tdeque<T, BuffSize>::tdeque(tdeque<T, BuffSize>&& other) :
+    __start(other.__start), __finish(other.__finish), 
+    __map(other.__map), __map_size(other.__map_size),
+    __map_allocator(other.__map_allocator), __data_allocator(other.__data_allocator)
+    {
+        other.__start = iterator();
+        other.__finish = iterator();
+        other.__map = nullptr;
+        other.__map_size = nullptr;
+        __map_allocator = tallocator<T*>();
+        __data_allocator = tallocator<T>();
     }
 }

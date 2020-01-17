@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Allocator
-    Update date:    2020/1/14
+    Update date:    2020/1/17
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -34,7 +34,9 @@ namespace toy_std
         /* Constructors */
         tallocator() noexcept { } ;
 
-        // tallocator(tallocator<T>&) noexcept;
+        tallocator(const tallocator<T>& other) :
+        __alloc(other.__alloc)
+        {  }
 
         // template<typename U>
         // tallocator(tallocator<U>&) noexcept;
