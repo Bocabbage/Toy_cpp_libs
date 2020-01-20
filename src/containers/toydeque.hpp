@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Deque
-    Update date:    2020/1/17
+    Update date:    2020/1/20
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -15,6 +15,7 @@ namespace toy_std
     __deque_buf_size(size_t n, size_t sz)
     {
         // Decide the size of the buffer
+        // A buffer here means 'the space' which pointed by an 'node'
         return n != 0 ? n : (sz < 512 ? size_t(512 / sz) : size_t(1));
     }
 
@@ -175,7 +176,7 @@ namespace toy_std
         using const_iterator = const __Deque_Iterator<BuffSize, T>;
 
         /* Constructors */
-        tdeque(): __start(), __finish(), __map(), __map_size()
+        tdeque(): __start(), __finish(), __map(), __map_size(), __size(0)
         { __create_map_and_nodes(0); }
         inline tdeque(size_type, const value_type&);
         tdeque(const tdeque<T, BuffSize>&);
@@ -194,7 +195,14 @@ namespace toy_std
         reference operator[](size_type pos) { return const_cast<reference>(static_cast<const_reference>(*this)[pos]); }
 
         /* Capacity */
-        size_type size() { return __finish - __start; }
+        inline size_type size() const { return __size; }
+        inline bool empty() const { return __size == 0; }
+
+        /* Modifiers */
+        void push_back(value_type&&);
+        void push_front(value_type&&);
+        void pop_back();
+        void pop_front();
 
     protected:
         using map_pointer = value_type**;
@@ -204,12 +212,18 @@ namespace toy_std
 
         map_pointer __map;
         size_type __map_size;
+        size_type __size;
 
         tallocator<value_type> __data_allocator;
         tallocator<pointer> __map_allocator;
 
         void __fill_initialize(size_type, const value_type&);
         void __create_map_and_nodes(size_type);
+        void __push_back_aux(value_type&&);
+        void __push_front_aux(value_type&&);
+        // void __pop_back_aux();
+        // void __pop_front_aux();
+        void __reallocate_map(size_type, bool);
     };
 
     template<typename T, size_t BuffSize>
@@ -217,6 +231,7 @@ namespace toy_std
     tdeque<T, BuffSize>::__fill_initialize(size_type n, const value_type& value)
     {
         __create_map_and_nodes(n);
+        __size = n;
         map_pointer cur;
         for (cur = __start.__node; cur < __finish.__node; ++cur)
             uninitialized_fill(*cur, *cur + iterator::buffer_size(), value);
@@ -247,16 +262,16 @@ namespace toy_std
     template<typename T, size_t BuffSize>
     inline
     tdeque<T, BuffSize>::tdeque(size_type count, const value_type& value):
-    __start(), __finish(), __map(), __map_size()
+    __start(), __finish(), __map(), __map_size(), __size(0)
     {
         __fill_initialize(count, value);
     }
 
     template<typename T, size_t BuffSize>
     tdeque<T, BuffSize>::tdeque(const tdeque<T, BuffSize>& other):
-    __start(), __finish(), __map(), __map_size()
+    __start(), __finish(), __map(), __map_size(), __size(other.__size)
     {
-        __create_map_and_nodes(other.size());
+        __create_map_and_nodes(other.__size);
         auto cur = __start, o_cur = other.__start;
         while (o_cur != other.__finish)
         {
@@ -271,13 +286,156 @@ namespace toy_std
     tdeque<T, BuffSize>::tdeque(tdeque<T, BuffSize>&& other) :
     __start(other.__start), __finish(other.__finish), 
     __map(other.__map), __map_size(other.__map_size),
+    __size(other.__size),
     __map_allocator(other.__map_allocator), __data_allocator(other.__data_allocator)
     {
         other.__start = iterator();
         other.__finish = iterator();
         other.__map = nullptr;
-        other.__map_size = nullptr;
+        other.__map_size = 0;
+        other.__size = 0;
         __map_allocator = tallocator<T*>();
         __data_allocator = tallocator<T>();
+    }
+
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::push_back(value_type&& value)
+    {
+        if (__finish.__cur != __finish.__last - 1)
+        {
+            construct(__finish.__cur, value);
+            ++__finish.__cur;
+            __size++;
+        }
+        else
+            __push_back_aux(value);
+    }
+
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::push_front(value_type&& value)
+    {
+        if (__start.__cur != __start.__first)
+        {
+            construct(__start.__cur - 1, value);
+            --__start.__cur;
+            __size++;
+        }
+        else
+            __push_front_aux(value);
+    }
+
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::pop_back()
+    {
+        if (__finish.__cur != __finish.__first)
+        {
+            --__finish.__cur;
+            destroy(__finish.__cur);
+            --__size;
+        }
+        else
+            //__pop_back_aux();
+        {
+            __finish.set_node(__finish.__node - 1);
+            __finish.__cur = __finish.__last - 1;
+            destroy(__finish.__cur);
+            --__size;
+        }
+    }
+
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::pop_front()
+    {
+        if (__start.__cur != __start.__last - 1)
+        {
+            destroy(__start.__cur);
+            __start.__cur++;
+            --__size;
+        }
+        else
+            //__pop_front_aux();
+        {
+            destroy(__start.__cur);
+            __start.set_node(__start.__node + 1);
+            __start.__cur = __start.__first;
+            --__size;
+        }
+    }
+
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::__push_back_aux(value_type&& value)
+    {
+        if (__finish.__node + 1 == __map[__map_size - 1])
+            __reallocate_map(1, false);
+        construct(__finish.__cur, value);
+        __finish.set_node(__finish.__node + 1);
+        __finish.__cur = __finish.__first;
+    }
+
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::__push_front_aux(value_type&& value)
+    {
+        if (__start.__node == __map[0])
+            __reallocate_map(1, true);
+        __start.set_node(__start.__node - 1);
+        __start.__cur = __start.__last - 1;
+        construct(__start.__cur, value);
+    }
+
+    /*
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::__pop_back_aux()
+    {
+        
+    }
+
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::__pop_front_aux()
+    {
+
+    }
+    */
+    
+    template<typename T, size_t BuffSize>
+    void
+    tdeque<T, BuffSize>::__reallocate_map(size_type nodes_to_add, bool add_at_front)
+    {
+        size_type old_num_nodes = __finish.__node - __start.__node + 1;
+        size_type new_num_nodes = old_num_nodes + nodes_to_add;
+
+        map_pointer new_node_start;
+        if (__map_size > 2 * new_num_nodes)
+        {
+            // Still have enough space:
+            // move the used space segments to the center.
+            new_node_start = __map + (__map_size - new_num_nodes) / 2
+                             + (add_at_front ? nodes_to_add : 0);
+            if (new_node_start < __start.__node)
+                copy(__start.__node, __finish.__node + 1, new_node_start);
+            else
+                copy_backward(__start.__node, __finish.__node + 1, new_node_start + old_num_nodes);
+
+        }
+        else
+        {
+            size_type new_map_size = __map_size + max(__map_size, nodes_to_add) + 2;
+            map_pointer new_map = __map_allocator.allocate(new_map_size);
+            new_node_start = new_map + (new_map_size - new_num_nodes) / 2
+                             + (add_at_front ? nodes_to_add : 0);
+            __map_allocator.deallocate(__map, __map_size);
+            __map = new_map;
+            __map_size = new_map_size;
+        }
+
+        __start.set_node(new_node_start);
+        __finish.set_node(new_node_start + old_num_nodes - 1);
     }
 }
