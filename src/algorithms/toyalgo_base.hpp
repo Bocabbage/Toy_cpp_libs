@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Mem_Tools
-    Update date:    2020/1/20
+    Update date:    2020/1/22
     Author:         Zhuofan Zhang
 
     Update Log:     2019/12/16 -- Implement 'copy','fill','fill_n'.
@@ -159,8 +159,15 @@ namespace toy_std
     
 /* copy_backward */
     template<typename BidirIt1, typename BidirIt2>
-    inline BidirIt2 copy_backward(BidirIt1, BidirIt2, BidirIt2)
+    BidirIt2 copy_backward(BidirIt1 first, BidirIt2 last, BidirIt2 result)
     {
+        while (last != first)
+        {
+            --last;
+            --result;
+            *result = *last;
+        }
 
+        return result;
     }
 }
