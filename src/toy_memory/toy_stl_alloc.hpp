@@ -125,6 +125,8 @@ namespace toy_std
         }
         else if (bytes_left >= size)
         {
+            // Unable to give all memory the nobjs need
+            // but try to give the max memory the pool can.
             nobjs = bytes_left / size;
             total_bytes = size * nobjs;
             result = start_free;
