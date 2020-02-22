@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Mem_Tools
-    Update date:    2019/12/16
+    Update date:    2019/2/22
     Author:         Zhuofan Zhang
 
     Update Log:     2019/12/15 -- Try to finish the different types(unfinished, need to implement the 'copy'/'fill' functions)
@@ -8,7 +8,8 @@
 
 */
 #pragma once
-#include "toy_std.hpp"
+#include"toy_std.hpp"
+#include"toyiterator.hpp"
 #include"toytype_traits.hpp"
 #include"toyalgo_base.hpp"
 
@@ -20,7 +21,7 @@ namespace toy_std
     inline ForwardIterator __uninitialized_copy_aux(InputIterator first, InputIterator last, ForwardIterator result, __true_type)
     {
         // Case1: IS POD
-        // Noted that the toy_std::copy should be implemented in <algorithm>.(unfinished)
+        // Noted that the toy_std::copy has been implemented in "toyalgo_base.hpp".
         return copy(first, last, result);
     }
 
@@ -51,6 +52,7 @@ namespace toy_std
     //  return cur;
     //}
 
+
     // Uninitialized_fill
     template<typename ForwardIterator, typename T>
     inline void __uninitialized_fill_aux(ForwardIterator first, ForwardIterator last, T& x, __true_type)
@@ -75,13 +77,13 @@ namespace toy_std
         fill_n(first, n, x);
     }
 
-    //template<typename ForwardIterator, typename T>
-    //void __uninitialized_fill_n_aux(ForwardIterator first, size_t n, T& x, __false_type)
-    //{
-    //  // Case2: IS NOT POD
-    //  for (size_t i = 0; i < n; ++i, ++first)
-    //      construct(&(*first), x);
-    //}
+    template<typename ForwardIterator, typename T>
+    void __uninitialized_fill_n_aux(ForwardIterator first, size_t n, T& x, __false_type)
+    {
+        // Case2: IS NOT POD
+        for (size_t i = 0; i < n; ++i, ++first)
+            construct(&(*first), x);
+    }
 
     template<typename InputIterator, typename ForwardIterator, typename T>
     inline ForwardIterator __uninitialized_copy(InputIterator first, InputIterator last, ForwardIterator result, T*)
@@ -90,12 +92,14 @@ namespace toy_std
         return __uninitialized_copy_aux(first, last, result, is_POD());
     }
 
-    // template<typename InputIterator, typename ForwardIterator, typename T>
-    // inline ForwardIterator __uninitialized_copy_n(InputIterator first, size_t n, ForwardIterator result, T*)
-    // {
-    //   using is_POD = typename __type_traits<T>::is_POD_type;
-    //   return __uninitialized_copy_n_aux(first, n, result, is_POD());
-    // }
+     /*
+     template<typename InputIterator, typename ForwardIterator, typename T>
+     inline ForwardIterator __uninitialized_copy_n(InputIterator first, size_t n, ForwardIterator result, T*)
+     {
+         using is_POD = typename __type_traits<T>::is_POD_type;
+         return __uninitialized_copy_n_aux(first, n, result, is_POD());
+     }
+     */
 
     template<typename ForwardIterator, typename T, typename T1>
     inline void __uninitialized_fill(ForwardIterator first, ForwardIterator last, T& x, T1*)
@@ -121,11 +125,13 @@ namespace toy_std
         return __uninitialized_copy(first, last, result, __value_type(result));
     }
 
-    // template<typename InputIterator, typename ForwardIterator>
-    // inline ForwardIterator uninitialized_copy_n(InputIterator first, size_t n, ForwardIterator result)
-    // {
-    //   return __uninitialized_copy_n(first, n, result, __value_type(result));
-    // }
+     /*
+     template<typename InputIterator, typename ForwardIterator>
+     inline ForwardIterator uninitialized_copy_n(InputIterator first, size_t n, ForwardIterator result)
+     {
+         return __uninitialized_copy_n(first, n, result, __value_type(result));
+     }
+     */
 
     template<typename ForwardIterator, typename T>
     inline void uninitialized_fill(ForwardIterator first, ForwardIterator last, const T& x)

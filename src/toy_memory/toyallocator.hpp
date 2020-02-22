@@ -1,6 +1,6 @@
 /*
     Project:        Toy_Allocator
-    Update date:    2020/1/17
+    Update date:    2020/2/22
     Author:         Zhuofan Zhang
 */
 #pragma once
@@ -25,7 +25,7 @@ namespace toy_std
         // friend bool operator==(const tallocator<T1>&, const tallocator<T2>&) noexcept;
 
         /* Constants */
-        static const size_type __max_size = std::numeric_limits<size_type>::max();
+        static const size_type __max_size = tUINT_MAX;
 
     private:
         __default_alloc __alloc;
@@ -73,7 +73,7 @@ namespace toy_std
     void
         tallocator<T>::construct(pointer p, const_reference x)
     {
-        construct(p, x);
+        toy_std::construct(p, x);
     }
 
     template<typename T>
@@ -81,13 +81,13 @@ namespace toy_std
         tallocator<T>::construct(pointer p, size_type n, const_pointer first)
     {
         for (size_t i = 0; i < n; ++i)
-            construct(p + i, *(first + i));
+            toy_std::construct(p + i, *(first + i));
     }
 
     template<typename T>
     void
         tallocator<T>::destroy(pointer p)
     {
-        destroy(p);
+        toy_std::destroy(p);
     }
 }
