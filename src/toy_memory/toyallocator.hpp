@@ -1,11 +1,12 @@
 /*
     Project:        Toy_Allocator
-    Update date:    2020/2/22
+    Update date:    2020/3/2
     Author:         Zhuofan Zhang
 */
 #pragma once
 #include"toy_std.hpp"
 #include "toymemory.hpp"
+
 
 namespace toy_std
 {
@@ -36,7 +37,12 @@ namespace toy_std
 
         tallocator(const tallocator<T>& other) :
         __alloc(other.__alloc)
-        {  }
+        { 
+          /* 
+             Do nothing. 
+             Because there's no non-static object in __default_alloc 
+          */ 
+        }
 
         // template<typename U>
         // tallocator(tallocator<U>&) noexcept;
